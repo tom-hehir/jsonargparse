@@ -6,38 +6,37 @@ with subclasses enabled (`set_parsing_settings(subclasses_enabled=["is_pure_data
 
 Each issue was checked on 2026-11-22 against jsonargparse **4.53.0** (the latest
 v4 release) and **main** (5.0.0rc2, commit 2e925db). The fix branches on this
-fork have no pull requests yet unless one is linked.
+fork have no pull requests yet unless one is linked; draft descriptions are in
+[`prs/`](prs/).
 
 ## Being fixed
 
 | Issue | Broken since | Fix |
 | ----- | ------------ | --- |
 | Parsing nested subclass values scales exponentially with the depth of nesting | all versions | [mauvilsa/jsonargparse#1036](https://github.com/mauvilsa/jsonargparse/pull/1036) |
-| A Protocol whose `__call__` returns a class rejects classes whose instances implement it | 4.52.0 | branch [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) |
-| C builtins such as `torch.log1p` rejected for a `Callable` returning a class | 4.52.0 | branch [`fix-builtin-callables`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-builtin-callables) |
-| A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's `init_args` | all versions tried | branch [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args) |
-| A tagged union with an instance default ignores the tag | 4.50.0 | branch [`fix-tagged-union-instance-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default) |
+| A Protocol whose `__call__` returns a class rejects classes whose instances implement it | 4.52.0 | branch [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances), [draft PR](prs/fix-factory-protocol-instances.md) |
+| A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's `init_args` | all versions tried | branch [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args), [draft PR](prs/fix-subscripted-generic-init-args.md) |
+| A union of dataclasses with an instance default rejects values for another member | 4.50.0 | branch [`fix-tagged-union-instance-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default), [draft PR](prs/fix-tagged-union-instance-default.md) |
 
-**Protocols with `__call__`.** For example,
-`class Encoder(Protocol): def __call__(self, x: Tensor) -> Tensor: ...` given the
-`class_path` of a module class. Since 4.52 such a Protocol is treated as a
-factory, so the class must be a subclass of the return type. Classes whose
-instances implement the Protocol, accepted up to 4.51, fail with "Expected
-'...' to be a subclass of Tensor". An unannotated return counts as a class too.
-
-**C builtins.** A builtin has no inspectable signature, so its return type can't
-be checked against `Callable[[Tensor], Tensor]`. Up to 4.51 it was accepted;
-since 4.52 it fails with "Expected 'torch.log1p' to be a function that returns
-Tensor".
+**Protocols with `__call__`.** Since 4.52 a Protocol whose `__call__` returns a
+class is treated as a factory, so a `class_path` must be a subclass of the return
+type, and a class whose instances implement the Protocol is rejected ("Expected
+'...' to be a subclass of ..."). An unannotated return counts as a class too.
+The fix accepts such classes. Classes whose `__call__` has no return annotation,
+like `torch.nn.Module`, still don't match a Protocol with an annotated return,
+since Protocol signatures must match exactly; annotating the Protocol's return as
+`Any` works around it.
 
 **Subscripted generics.** With `class Codec(Generic[M])` and a field typed
 `Codec[Spectrum]`, a `class_path` naming a subclass with its own parameter fails
 with "Option 'depth' is not accepted". A plain `Codec` annotation works.
 
-**Tagged unions.** A field typed `A | B` with default `A()`, where `A` and `B` have
-`type: Literal["a"]` and `type: Literal["b"]` fields, rejects
-`{"type": "b", "x": 3}`. It works without the default, and with dotted
-`--u.type=b`.
+**Unions with an instance default.** A field typed `A | B` with default `A()`,
+where `A` and `B` have `type: Literal["a"]` and `type: Literal["b"]` fields,
+rejects `{"type": "b", "x": 3}`. It works without the default, and with dotted
+`--u.type=b`. Since 4.50 the default's `class_path` is kept while parsing, so
+that a partial value updates the default's class (#921); every other member is
+then checked against that class.
 
 ## Fixed upstream
 
@@ -100,6 +99,15 @@ Present on both 4.53.0 and main. None of these is being worked on here.
 - **`link_arguments`** can't target a dict or list entry.
 
 ## Intended behaviour, or not reproduced
+
+- **C builtins such as `torch.log1p` rejected for `Callable[[Tensor], Tensor]`
+  (since 4.52).** A function given by import path must have a return annotation,
+  or a return type in a stub file, that matches the callable's (documented; added
+  in #959, stub fallback in #963). torch's stubs are only found with
+  `set_parsing_settings(stubs_resolver_allow_py_files=True)`, which fixes it, but
+  only if set before the first parse: the stubs resolver is created once and
+  later setting changes are ignored. That caching is a possible small upstream
+  fix.
 
 - Changing a `class_path` keeps the old class's `init_args` that the new class
   accepts. This is documented, but it can change results silently: an optimizer
