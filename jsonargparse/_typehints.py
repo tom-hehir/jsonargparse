@@ -2909,10 +2909,9 @@ def adapt_class_type(
         raise ValueError(f"Expected prior_init_args to be 'keep' or 'discard', got {prior_init_args!r}")
     if prior_init_args == "discard":
         mark_prior_init_args(value, prior_init_args)  # so that merging it into the prior config does not keep them
-    if is_generic_class(typehint) and not is_protocol(typehint):
-        val_class = typehint
-    else:
-        val_class = import_object(value.class_path)
+    val_class = import_object(value.class_path)
+    if is_generic_class(typehint) and val_class is typehint.__origin__:
+        val_class = typehint  # to substitute its type variables by the type arguments
     parser = ActionTypeHint.get_class_parser(val_class, sub_add_kwargs, skip_args=partial_skip_args)
 
     # No need to re-create the linked arg but just "inform" the corresponding parser actions that it exists upstream.

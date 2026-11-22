@@ -3377,6 +3377,33 @@ def test_subclass_generic_alias_in_union(parser):
     assert isinstance(init.op, GenericStrategy)
 
 
+class GenericModel(Generic[T]):
+    def __init__(self, value: Optional[T] = None):
+        self.value = value
+
+
+class IntModel(GenericModel[int]):
+    def __init__(self, depth: int = 1):
+        super().__init__()
+        self.depth = depth
+
+
+def test_subclass_of_subscripted_generic(parser):
+    parser.add_argument("--model", type=GenericModel[int])
+    # a subclass is parsed with its own parameters
+    cfg = parser.parse_args([f"--model={__name__}.IntModel", "--model.depth=2"])
+    assert cfg.model.init_args == Namespace(depth=2)
+    init = parser.instantiate(cfg)
+    assert isinstance(init.model, IntModel)
+    assert init.model.depth == 2
+    # the generic class itself is parsed with its type variable substituted
+    cfg = parser.parse_args([f"--model={__name__}.GenericModel", "--model.value=3"])
+    assert cfg.model.init_args == Namespace(value=3)
+    with pytest.raises(ArgumentError) as ctx:
+        parser.parse_args([f"--model={__name__}.GenericModel", "--model.value=x"])
+    ctx.match('Parser key "value"')
+
+
 def test_subclass_help_not_subclass(parser):
     parser.add_argument("--op", type=BaseC)
     with pytest.raises(ArgumentError) as ctx:
