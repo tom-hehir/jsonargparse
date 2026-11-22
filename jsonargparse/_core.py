@@ -35,6 +35,7 @@ from ._common import (
     lenient_check,
     parent_parser,
     parser_context,
+    skipping_sub_defaults,
     supports_optionals_as_positionals,
     validate_default,
 )
@@ -523,11 +524,9 @@ class ArgumentParser(ActionsContainer, argparse.ArgumentParser):
     ):
         cfg = Namespace()
         if defaults:
-            with parser_context(lenient_check=True):  # required for omegaconf+
-                if sub_defaults:
-                    cfg = self.get_defaults(skip_validation=True)
-                else:
-                    cfg = self._get_defaults_without_sub_defaults(skip_validation=True)
+            # lenient_check required for omegaconf+
+            with parser_context(lenient_check=True, skipping_sub_defaults=not sub_defaults):
+                cfg = self.get_defaults(skip_validation=True)
 
         if env or (env is None and self._default_env):
             if environ is None:
@@ -1211,9 +1210,13 @@ class ArgumentParser(ActionsContainer, argparse.ArgumentParser):
         Returns:
             An object with all default values as attributes.
         """
-        cfg = self._get_defaults_without_sub_defaults(skip_validation)
-        with parser_context(validating_defaults=True):
-            ActionTypeHint.add_sub_defaults(self, cfg)
+        # A parse that adds the sub-defaults itself, after merging the given values, gets the defaults without them
+        skip_sub_defaults = skipping_sub_defaults.get()
+        with parser_context(skipping_sub_defaults=False):
+            cfg = self._get_defaults_without_sub_defaults(skip_validation)
+            if not skip_sub_defaults:
+                with parser_context(validating_defaults=True):
+                    ActionTypeHint.add_sub_defaults(self, cfg)
         return cfg
 
     def _get_defaults_without_sub_defaults(self, skip_validation: bool) -> Namespace:
