@@ -1737,7 +1737,11 @@ def adapt_typehints(
                 vals.append(subtype_val)
                 if not sub_defaults_invalidate_value(subtype_val, subtype, sorted_subtypes, adapt_kwargs):
                     break
-        if all(isinstance(v, Exception) for v in vals):
+        failed = all(isinstance(v, Exception) for v in vals)
+        if failed and isinstance(prev_val, Namespace) and prev_val.get(subclasses_disabled_meta_key):
+            # not a value for the class of the previous value, so it is a value for another union member
+            return adapt_typehints(pristine_value(val), typehint, **{**adapt_kwargs, "prev_val": unset_sentinel})
+        if failed:
             raise_union_unexpected_value(typehint, sorted_subtypes, val, vals)
         val = next((v for v in reversed(vals) if not isinstance(v, Exception)))
 

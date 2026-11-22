@@ -5,7 +5,7 @@ import dataclasses
 import json
 import sys
 from importlib import import_module
-from typing import Any, Dict, Final, Generic, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Final, Generic, List, Literal, Optional, Tuple, TypeVar, Union
 from unittest.mock import patch
 
 import pytest
@@ -946,6 +946,41 @@ def test_union_dataclasses(parser):
     init = parser.instantiate(cfg)
     assert isinstance(init.data, SubAorB)
     assert isinstance(init.data.a_or_b, SubB)
+
+
+@dataclasses.dataclass
+class TaggedA:
+    tag: Literal["a"] = "a"
+    n: str = "s"
+
+
+@dataclasses.dataclass
+class TaggedB:
+    tag: Literal["b"] = "b"
+    n: int = 1
+
+
+@dataclasses.dataclass
+class TaggedC:
+    tag: Literal["c"] = "c"
+    n: int = 1
+
+
+def test_union_dataclasses_tagged_with_instance_default(parser):
+    parser.add_argument("--data", type=Union[TaggedA, TaggedB, TaggedC], default=TaggedC(n=5))
+
+    cfg = parser.parse_args(['--data={"n": 2}'])
+    assert parser.instantiate(cfg).data == TaggedC(n=2)
+
+    cfg = parser.parse_args(['--data={"tag": "b"}'])
+    assert parser.instantiate(cfg).data == TaggedB()
+
+    cfg = parser.parse_args(['--data={"tag": "a"}'])
+    assert parser.instantiate(cfg).data == TaggedA()
+
+    # the init_args of the previous member are discarded, as for a class_path change
+    cfg = parser.parse_args(['--data={"n": 2}', '--data={"tag": "b"}'])
+    assert parser.instantiate(cfg).data == TaggedB()
 
 
 @dataclasses.dataclass

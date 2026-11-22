@@ -273,6 +273,10 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- A union of dataclasses with an instance as default rejected a value for
+  another member than the one of the default, e.g. ``{"tag": "b"}`` for
+  ``A | B`` with default ``A()``. A regression from 4.50.0 (`#????
+  <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^
