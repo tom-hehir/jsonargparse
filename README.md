@@ -73,15 +73,32 @@ Present on both 4.53.0 and main. None of these is being worked on here.
 
 ### Valid configs rejected
 
+- **An attribute that isn't a field, on an instance used as a default.** A
+  dataclass default that sets an attribute in `__post_init__` (public or
+  `_`-prefixed), or has a `field(init=False)`, is rejected ("Option '_x' is not
+  accepted") when the field's type is a union, `Optional`, or a subclass type
+  (including `subclasses_enabled=["is_pure_dataclass"]`). The same values given
+  as `class_path` + `init_args` in a config work. A plain dataclass type works.
+  This is a bug, and for unions a regression:
+  - `convert_to_dict` turns the default into `init_args` using `vars(value)`,
+    so it picks up every instance attribute. Until 4.41 it used
+    `dataclasses.asdict`; #781 (4.42.0, pydantic support) switched to `vars()`
+    for other reasons.
+  - The plain path already drops these keys on purpose (#650, "skip init=False
+    and pydantic extra fields"); the union and subclass path doesn't.
+  - Unions: work in 4.32-4.41, fail in 4.42-4.45, work in 4.46-4.49, fail since
+    4.50.0 (#921). Subclass types: a dataclass-instance default has been
+    accepted since 4.42 and has always failed with such an attribute.
+  - Likely fix: in `convert_to_dict`, keep only a dataclass's `__init__` fields
+    (`f.init` in `dataclasses.fields(value)`). A quick patch of main passes all
+    the cases above; no branch yet.
 - **Protocols.** A Protocol whose members are all `_`-prefixed matches nothing,
   and signatures must match annotations exactly (`x: float | int` doesn't
   implement `x: float`; a narrower return type is rejected).
 - **Functions as `class_path`.** A function is judged only by its return
   annotation: a TypeVar return is rejected, and so is a broader return type than
   the field's.
-- **Default instances.** A dataclass default that sets attributes in
-  `__post_init__` is rejected in a union or with subclasses enabled ("Option
-  '_x' is not accepted"), and `dict` or `functools.partial` defaults can't be
+- **Undumpable defaults.** `dict` or `functools.partial` defaults can't be
   dumped ("Unable to serialize instance").
 - **Slotted dataclasses.** `slots=True` dataclass defaults fail with "vars()
   argument must have __dict__ attribute".
