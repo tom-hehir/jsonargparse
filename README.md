@@ -13,7 +13,6 @@ fork have no pull requests yet unless one is linked; draft descriptions are in
 
 | Issue | Broken since | Fix |
 | ----- | ------------ | --- |
-| Parsing nested subclass values scales exponentially with the depth of nesting | all versions | [mauvilsa/jsonargparse#1036](https://github.com/mauvilsa/jsonargparse/pull/1036) |
 | A Protocol whose `__call__` returns a class rejects classes whose instances implement it | 4.52.0 | branch [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances), [draft PR](prs/fix-factory-protocol-instances.md) |
 | A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's `init_args` | all versions tried | branch [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args), [draft PR](prs/fix-subscripted-generic-init-args.md) |
 | A union of dataclasses with an instance default rejects values for another member | 4.50.0 | branch [`fix-tagged-union-instance-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default), [draft PR](prs/fix-tagged-union-instance-default.md) |
@@ -57,6 +56,7 @@ resolved by `get_signature_parameters`, which also covers a hand-written
 
 | Issue | Fixed in |
 | ----- | -------- |
+| Parsing nested subclass values scales exponentially with the depth of nesting | main ([#1036](https://github.com/mauvilsa/jsonargparse/pull/1036), merged 2026-11-23) |
 | Parsing a list takes time quadratic in its length | 5.0 ([#975](https://github.com/mauvilsa/jsonargparse/pull/975)) |
 | Changing `class_path` writes another union member's defaults into the value (e.g. `eps=1e-5` from `LayerNorm` ending up in an `RMSNorm`) | 4.52.0 ([#968](https://github.com/mauvilsa/jsonargparse/pull/968)) |
 | An error raised in a constructor is reported as "Does not validate against any of the Union subtypes" | main ([#1015](https://github.com/mauvilsa/jsonargparse/pull/1015)) |
