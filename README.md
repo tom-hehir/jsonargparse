@@ -110,6 +110,16 @@ Present on both 4.53.0 and main. None of these is being worked on here.
   `--config` in `__init__`, a class with a `config` parameter fails with
   "argument '--config' already exists".
 - **`link_arguments`** can't target a dict or list entry.
+- **`stubs_resolver_allow_py_files=True` drops every parameter of sklearn's
+  `Ridge`** ("Option 'alpha' is not accepted"). With the setting on, the stub
+  resolver reads `sklearn/linear_model/_ridge.py`, follows assignments inside
+  functions (e.g. `alpha = check_scalar_alpha(alpha, ...)`) in
+  `add_module_aliases`, and recurses until `RecursionError`. That error is only
+  logged at debug level, and the class is left with no parameters. Without the
+  setting `Ridge` parses; other sklearn estimators tried were unaffected. Also
+  on 4.51.0, with sklearn 1.8.0. Low priority and not being pursued: no fix
+  branch, nothing upstream. We avoid the setting instead (astral annotates the
+  callable as `Callable[[Tensor], Any]`, see the entry on C builtins below).
 
 ## Intended behaviour, or not reproduced
 
@@ -120,7 +130,8 @@ Present on both 4.53.0 and main. None of these is being worked on here.
   `set_parsing_settings(stubs_resolver_allow_py_files=True)`, which fixes it, but
   only if set before the first parse: the stubs resolver is created once and
   later setting changes are ignored. That caching is a possible small upstream
-  fix.
+  fix. The setting also breaks sklearn's `Ridge` (see Still open), so we use a
+  `Callable[[Tensor], Any]` annotation instead.
 
 - Changing a `class_path` keeps the old class's `init_args` that the new class
   accepts. This is documented, but it can change results silently: an optimizer
