@@ -273,6 +273,11 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- A dataclass instance as default of a union, ``Optional`` or subclass type was
+  rejected when it had attributes that are not ``__init__`` parameters, e.g.
+  ``init=False`` fields or attributes set in ``__post_init__``, with an error
+  like ``Option '_cache' is not accepted`` (`#????
+  <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^

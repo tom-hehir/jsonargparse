@@ -811,8 +811,13 @@ def convert_to_dict(value) -> dict:
             return attrs.asdict(value)
 
     value_type = type(value)
+    attributes = {**vars(value), **get_pydantic_extra_fields(value)}
+    if dataclasses.is_dataclass(value_type):
+        # only __init__ parameters, not e.g. init=False fields or attributes set in __post_init__
+        init_params = {p.name for p in get_signature_parameters(value_type)}
+        attributes = {k: v for k, v in attributes.items() if k in init_params}
     init_args = {}
-    for name, attr in {**vars(value), **get_pydantic_extra_fields(value)}.items():
+    for name, attr in attributes.items():
         attr_type = type(attr)
         if is_convertible_to_dict(attr_type):
             attr = convert_to_dict(attr)

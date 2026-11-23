@@ -348,6 +348,36 @@ def test_nested_dataclass_field_init_false(parser):
 
 
 @dataclasses.dataclass
+class NonInitAttrsBase:
+    p1: int = 1
+
+
+@dataclasses.dataclass
+class NonInitAttrs(NonInitAttrsBase):
+    p2: int = dataclasses.field(init=False, default=0)
+
+    def __post_init__(self):
+        self.p2 = self.p1 + 1
+        self._p3 = self.p1 + 2
+
+
+@pytest.mark.parametrize(
+    ["data_type", "subclasses_enabled"],
+    [(Optional[NonInitAttrs], []), (NonInitAttrsBase, ["is_pure_dataclass"])],
+)
+def test_dataclass_instance_default_non_init_attributes(parser, subclass_behavior, data_type, subclasses_enabled):
+    set_parsing_settings(subclasses_enabled=subclasses_enabled)
+    parser.add_argument("--data", type=data_type, default=NonInitAttrs(p1=2))
+    cfg = parser.parse_args(["--data.p1=3"])
+    init = parser.instantiate(cfg)
+    assert init.data == NonInitAttrs(p1=3)
+    assert init.data._p3 == 5
+    dump = parser.dump(cfg)
+    assert "p2" not in dump and "_p3" not in dump
+    assert parser.parse_string(dump) == cfg
+
+
+@dataclasses.dataclass
 class DataFieldFactory:
     a1: List[int] = dataclasses.field(default_factory=lambda: [1, 2, 3])
     a2: Dict[str, float] = dataclasses.field(default_factory=lambda: {"a": 1.2, "b": 3.4})
