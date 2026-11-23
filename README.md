@@ -17,6 +17,7 @@ fork have no pull requests yet unless one is linked; draft descriptions are in
 | A Protocol whose `__call__` returns a class rejects classes whose instances implement it | 4.52.0 | branch [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances), [draft PR](prs/fix-factory-protocol-instances.md) |
 | A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's `init_args` | all versions tried | branch [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args), [draft PR](prs/fix-subscripted-generic-init-args.md) |
 | A union of dataclasses with an instance default rejects values for another member | 4.50.0 | branch [`fix-tagged-union-instance-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default), [draft PR](prs/fix-tagged-union-instance-default.md) |
+| A dataclass default with an attribute that isn't an `__init__` parameter is rejected by union, `Optional` and subclass types | unions: 4.42.0, and 4.50.0; subclass types: always | branch [`fix-default-instance-non-field-attributes`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes), [draft PR](prs/fix-default-instance-non-field-attributes.md) |
 
 **Protocols with `__call__`.** Since 4.52 a Protocol whose `__call__` returns a
 class is treated as a factory, so a `class_path` must be a subclass of the return
@@ -37,6 +38,20 @@ rejects `{"type": "b", "x": 3}`. It works without the default, and with dotted
 `--u.type=b`. Since 4.50 the default's `class_path` is kept while parsing, so
 that a partial value updates the default's class (#921); every other member is
 then checked against that class.
+
+**Attributes that aren't `__init__` parameters, on a default instance.** A
+dataclass default that sets an attribute in `__post_init__` (public or
+`_`-prefixed), or has a `field(init=False)`, is rejected ("Option '_x' is not
+accepted") when the field's type is a union, `Optional`, or a subclass type
+(including `subclasses_enabled=["is_pure_dataclass"]`). A plain dataclass type
+works, and so do the same values given as `class_path` + `init_args`.
+`convert_to_dict` turns the default into `init_args` from `vars(value)`, so it
+picks up every instance attribute; until 4.41 it used `dataclasses.asdict`, and
+#781 (4.42.0) switched for pydantic support. The plain path already drops these
+keys on purpose (#650). Unions worked in 4.32-4.41 and 4.46-4.49; subclass types
+have always failed. The fix keeps only the class's `__init__` parameters, as
+resolved by `get_signature_parameters`, which also covers a hand-written
+`__init__` and stored `InitVar`s.
 
 ## Fixed upstream
 
@@ -73,25 +88,6 @@ Present on both 4.53.0 and main. None of these is being worked on here.
 
 ### Valid configs rejected
 
-- **An attribute that isn't a field, on an instance used as a default.** A
-  dataclass default that sets an attribute in `__post_init__` (public or
-  `_`-prefixed), or has a `field(init=False)`, is rejected ("Option '_x' is not
-  accepted") when the field's type is a union, `Optional`, or a subclass type
-  (including `subclasses_enabled=["is_pure_dataclass"]`). The same values given
-  as `class_path` + `init_args` in a config work. A plain dataclass type works.
-  This is a bug, and for unions a regression:
-  - `convert_to_dict` turns the default into `init_args` using `vars(value)`,
-    so it picks up every instance attribute. Until 4.41 it used
-    `dataclasses.asdict`; #781 (4.42.0, pydantic support) switched to `vars()`
-    for other reasons.
-  - The plain path already drops these keys on purpose (#650, "skip init=False
-    and pydantic extra fields"); the union and subclass path doesn't.
-  - Unions: work in 4.32-4.41, fail in 4.42-4.45, work in 4.46-4.49, fail since
-    4.50.0 (#921). Subclass types: a dataclass-instance default has been
-    accepted since 4.42 and has always failed with such an attribute.
-  - Likely fix: in `convert_to_dict`, keep only a dataclass's `__init__` fields
-    (`f.init` in `dataclasses.fields(value)`). A quick patch of main passes all
-    the cases above; no branch yet.
 - **Protocols.** A Protocol whose members are all `_`-prefixed matches nothing,
   and signatures must match annotations exactly (`x: float | int` doesn't
   implement `x: float`; a narrower return type is rejected).
