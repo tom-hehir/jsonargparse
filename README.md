@@ -140,7 +140,11 @@ Present on both 4.53.0 and main. None of these is being worked on here.
 
 - Changing a `class_path` keeps the old class's `init_args` that the new class
   accepts. This is documented, but it can change results silently: an optimizer
-  defaulting to `Adam`, switched to `AdamW`, keeps `weight_decay=0.0`.
+  defaulting to `Adam`, switched to `AdamW`, keeps `weight_decay=0.0`. The
+  maintainer has opened fixes: [#1038](https://github.com/mauvilsa/jsonargparse/pull/1038)
+  discards them by default in 5.0, with `prior_init_args: keep` to opt back in,
+  and [#1037](https://github.com/mauvilsa/jsonargparse/pull/1037) adds the option
+  to 4.54 and deprecates keeping.
 - `null` means "unset", so it's accepted for non-Optional fields.
 - A section file (`--trainer b.yaml`) replaces the section instead of merging
   into it; 5.0 adds `__include__` for composing configs.

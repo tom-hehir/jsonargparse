@@ -89,7 +89,7 @@ J23 (v5) is in (c). Patches prototyped during this investigation (not yet branch
 |---|---|---|---|---|
 | J06 | Document the per-key merge of dict fields; offer an opt-in deep merge with a delete marker | Silent key loss; inconsistent with dotted overrides; one project generates ~50 standalone configs from a ~1,600-line script to avoid overlays | Replace is documented and pinned by tests (incl. `__include__`); a merge needs a delete syntax | S1 |
 | J05 | Warn or raise when a plain-class instance default can't serve as the base for overrides (or recover its args) | Silent wrong value from the most natural way to write a default | "Use `lazy_instance`" is a documented answer | S1 |
-| J21 | Opt-in "reset `init_args` on `class_path` change" (or reset only default-sourced values) | Silent wrong hyperparameters (Adam to AdamW keeps `weight_decay=0`; union instance defaults carry `eps` across members) | Documented; 14 tests pin keep-shared; changes semantics | S2 |
+| J21 | Opt-in "reset `init_args` on `class_path` change" (or reset only default-sourced values) | Silent wrong hyperparameters (Adam to AdamW keeps `weight_decay=0`; union instance defaults carry `eps` across members) | Documented; 14 tests pin keep-shared; changes semantics. *Upstream fix open: #1038 (v5) makes discarding the default, #1037 (4.54) adds the option and deprecates keeping.* | S2 |
 | J25 | Merge section files given to a parent group like whole-tree configs, or document the difference | Silent resets of nullable sections | Consistent with "a value replaces"; v5 `__include__` composes correctly | S2 |
 | J19 | A pre-validation interpolation hook, or document `set_loader` for env expansion | 5 of 6 projects hand-roll placeholder strategies | omegaconf mode exists; `set_loader` already works for config files | S2 |
 | J20 | A spec-only type (e.g. `Spec[T]`) that validates a `class_path` but returns the spec | One project wrote and later removed a ~700-line deferred-recipe layer | New API surface; `lazy_instance` partly covers it | S2 |
@@ -195,7 +195,7 @@ J23 (v5) is in (c). Patches prototyped during this investigation (not yet branch
 | J18 | C builtins rejected for `Callable[[Tensor], Tensor]`; stubs setting read once | intended-but-awkward | S2 | trivial | intended / likely-bug | 4.51 ✓ 4.53 ✗ v5 ✗ | `J18_c_builtin_callable.py` |
 | J19 | No placeholder interpolation before validation | missing-feature | S2 | medium | debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J19_placeholder_in_typed_field.py` |
 | J20 | No deferred instantiation (validate a `class_path` now, build later) | missing-feature | S2 | medium | debatable | ? (feature) | — |
-| J21 | Changing `class_path` keeps the old class's `init_args`, including defaults | intended-but-awkward | S2 | small | intended | 4.51 ✗ 4.53 ✗ v5 ✗ | `J21_class_path_switch_keeps_init_args.py` |
+| J21 | Changing `class_path` keeps the old class's `init_args`, including defaults *(upstream fix open)* | intended-but-awkward | S2 | small | intended | 4.51 ✗ 4.53 ✗ v5 ✗ | `J21_class_path_switch_keeps_init_args.py` |
 | J22 | `dump()` drops explicit `null`s; reload gives the default | intended-but-awkward | S3 | small | debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J22_dump_drops_null.py` |
 | J23 | v5: a required `X \| None` can't be given `null` | v5-migration | S2 | medium | likely-bug | 4.51 ✓ 4.53 ✓ v5 ✗ | `J23_required_optional_null.py` |
 | J24 | Protocol-typed class default inside a dataclass default or union dumps as a bare path; not a fixpoint | bug | S2 | small | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J24_protocol_class_default_dump.py` |
@@ -688,6 +688,18 @@ S1 · small–medium · debatable · hit in 1 of 6 (an agent-guideline rule; `No
 
 #### J21 Changing `class_path` keeps the old class's `init_args`
 S2 · small (opt-in) · intended · hit in 3 of 6 (an optimizer switched from Adam to AdamW trained with `weight_decay=0`; a replace-only config edit language; required optimizer fields) · `repros/J21_class_path_switch_keeps_init_args.py`
+
+*Upstream fix open (2026-11-24, by the maintainer):
+[#1038](https://github.com/mauvilsa/jsonargparse/pull/1038) (v5) makes a
+`class_path` change discard the earlier `init_args`, adds a
+`prior_init_args: keep | discard` key (`--opt:keep` / `--opt:discard` on the
+command line), and makes `keep` skip the old class's signature defaults;
+[#1037](https://github.com/mauvilsa/jsonargparse/pull/1037) (4.54) adds the same
+options to v4 and deprecates keeping. That covers both fixes suggested below.
+Not yet run against our repro: the PR's tests cover plain subclass types, lists
+and `Callable`, but not the union-of-dataclasses default shape or `dict[str, Base]`
+overlays, so check those, and recheck branch `fix-tagged-union-instance-default`
+(J26), which touches the same union default path.*
 
 - **What happens**: when `class_path` changes, only `init_args` the new class
   doesn't accept are dropped; everything else carries over, including values
