@@ -9,6 +9,11 @@ v4 release) and **main** (5.0.0rc2, commit 2e925db). The fix branches on this
 fork have no pull requests yet unless one is linked; draft descriptions are in
 [`prs/`](prs/).
 
+A fuller, ranked inventory (2026-11-24, every issue re-checked on 4.51.0, 4.53.0
+and 5.0.0rc2, with severity and a shortlist) is in [`inventory.md`](inventory.md),
+with one standalone script per issue in [`repros/`](repros/). Where the two
+disagree, `inventory.md` is newer; its last section lists the corrections.
+
 ## Being fixed
 
 | Issue | Broken since | Fix |
