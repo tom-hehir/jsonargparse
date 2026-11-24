@@ -43,6 +43,10 @@ design-change · done (fixed upstream) · n/a.
 debatable (defensible either way) · intended (documented or deliberate; at
 most a docs change or an opt-in).
 
+*Work begun* marks the issues we had already started fixing before this
+inventory (fix branches, or our own upstream PR). They are ranked where their
+impact puts them, as if no work had started.
+
 **Status** per version: ✗ the problem is present, ✓ absent or fixed, – not
 applicable, ? not checked. Line references are to v5 (5.0.0rc2 + 29d6f00)
 unless marked.
@@ -58,22 +62,26 @@ couldn't use. Issues with a clean workaround are down-ranked.
 
 | # | ID | Why it matters | Sev | Effort | Appetite |
 |---|---|---|---|---|---|
-| 1 | J01 | A callable Protocol (or `Callable[..., Class]`) rejects classes whose instances implement it, even as the field's own default. Keeps 3 of 6 projects off 4.52+ and v5; a fourth gave up its return types. Fix branch covers Protocols, not `Callable` (#1033). | S1 | small | likely-bug |
+| 1 | J01 | A callable Protocol (or `Callable[..., Class]`) rejects classes whose instances implement it, even as the field's own default. Keeps 3 of 6 projects off 4.52+ and v5; a fourth gave up its return types. *Work begun: branch `fix-factory-protocol-instances`, draft PR in `prs/`; covers Protocols, not the `Callable` case from #1033.* | S1 | small | likely-bug |
 | 2 | J04 + J44 | Inherited dataclass fields are resolved in the wrong module's namespace: every field of a class silently unvalidated (J04), or a field bound to the wrong class (J44). **Quick win**: a per-base resolution patch is tested and the suite passes. | S1 | small | likely-bug |
-| 3 | J14 | A `str \| SomeClass` value naming an existing file is replaced by the file's contents, silently; a multi-GB file is read several times (one incident hung a run). Forced a path-alias convention in 28 files across 4 projects. | S2 | small | likely-bug |
-| 4 | J27 | One unevaluable annotation (a quoted name inside `\|`) leaves every field of the class silently unvalidated. **Quick win** alongside: warn, not DEBUG-log, when a class falls back to `Unvalidated` (would have caught J04 too). | S2 | small | likely-bug |
-| 5 | J09 | Lists/dicts of dataclass defaults dump as "Unable to serialize instance" text that doesn't reload. Forced `None` defaults that hide the effective value from `--print_config`. | S2 | small | likely-bug |
-| 6 | J10 | `set_parsing_settings(subclasses_enabled=[...])` raises on a second identical call, with no public getter. 3 projects copy private-import save/restore helpers; one release broke on it. **Quick win** (idempotence, getter). | S2 | small | likely-bug |
-| 7 | J13 | `os.PathLike` stringifies anything; CLI `null` becomes `"None"` (a run staged into `./None`). **Quick win**. | S2 | small | likely-bug |
-| 8 | J24 | A class default for a Protocol field inside a dataclass default or union dumps as a bare import path, so saved configs omit hyperparameters and silently follow later code-default changes. | S2 | small | likely-bug |
-| 9 | J02 | jaxtyping annotations never compare equal in Protocol matching; Modules need `-> Any`. 2 projects gave up typed returns. | S2 | small | likely-bug (jaxtyping) |
-| 10 | J12 | Errors bury the cause under wrapper lines for plain dataclasses and repeated value dumps (2-17 KB). Three concrete message fixes. | S2 | medium | likely-bug |
-| 11 | J18 + J31 | The stubs setting is read once (J18) and makes sklearn's `Ridge` lose all parameters (J31). Two **quick wins** (reset the cached resolver; `skip=skip \| {name}`), which together make the clean route for typed C builtins usable. | S2/S3 | trivial | likely-bug |
-| 12 | J17 | A Protocol with only `_` members matches nothing, with an unhelpful message. **Quick win** for the message; variance is debatable. | S2 | trivial | likely-bug (message) |
-| 13 | J43, J39, J47 | `parse_object` mutates list/dict inputs; slotted dataclass defaults crash; a failing `default_factory` gives no context. **Quick wins**. | S3 | trivial | likely-bug |
-| 14 | J35, J37, J33, J36, J34 | Stale `--config` in nested parsers; `register_type` serializer applied by union arm (silent data loss if used); quoted PEP 695 aliases; tuple keys; docstring-parser failure dropping parameters. | S3 | small | likely-bug |
+| 3 | J08 | Nested `class_path` values take time exponential in nesting depth: 35 and 17 CPU s per parse of real configs on 4.53. One project parked a ~180-line cache built on private internals. *Work begun: our #1036 is merged into main, so v5 only; no 4.x backport.* | S2 | done (v5) | likely-bug |
+| 4 | J15 | A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's own `init_args`, so the precise annotation can't be used. One project added per-type marker ABCs instead (15 files, +293 lines, plus a review rule). *Work begun: branch `fix-subscripted-generic-init-args`, draft PR in `prs/`.* | S2 | small | likely-bug |
+| 5 | J14 | A `str \| SomeClass` value naming an existing file is replaced by the file's contents, silently; a multi-GB file is read several times (one incident hung a run). Forced a path-alias convention in 28 files across 4 projects. | S2 | small | likely-bug |
+| 6 | J16 | A dataclass default with derived attributes (`__post_init__`, `init=False`) is rejected under `Optional`, unions or subclass mode. It forced a registry redesign, and 9 of 223 dataclasses in one project can't be used as defaults. *Work begun: branch `fix-default-instance-non-field-attributes`, draft PR in `prs/`.* | S2 | small | likely-bug |
+| 7 | J27 | One unevaluable annotation (a quoted name inside `\|`) leaves every field of the class silently unvalidated. **Quick win** alongside: warn, not DEBUG-log, when a class falls back to `Unvalidated` (would have caught J04 too). | S2 | small | likely-bug |
+| 8 | J09 | Lists/dicts of dataclass defaults dump as "Unable to serialize instance" text that doesn't reload. Forced `None` defaults that hide the effective value from `--print_config`. | S2 | small | likely-bug |
+| 9 | J10 | `set_parsing_settings(subclasses_enabled=[...])` raises on a second identical call, with no public getter. 3 projects copy private-import save/restore helpers; one release broke on it. **Quick win** (idempotence, getter). | S2 | small | likely-bug |
+| 10 | J13 | `os.PathLike` stringifies anything; CLI `null` becomes `"None"` (a run staged into `./None`). **Quick win**. | S2 | small | likely-bug |
+| 11 | J24 | A class default for a Protocol field inside a dataclass default or union dumps as a bare import path, so saved configs omit hyperparameters and silently follow later code-default changes. | S2 | small | likely-bug |
+| 12 | J26 | A tagged union of dataclasses with an instance default rejects values for another member (a 4.50 regression); one project capped below 4.50 for a while. *Work begun: branch `fix-tagged-union-instance-default`, draft PR in `prs/`.* | S2 | small | likely-bug |
+| 13 | J02 | jaxtyping annotations never compare equal in Protocol matching; Modules need `-> Any`. 2 projects gave up typed returns. | S2 | small | likely-bug (jaxtyping) |
+| 14 | J12 | Errors bury the cause under wrapper lines for plain dataclasses and repeated value dumps (2-17 KB). Three concrete message fixes. | S2 | medium | likely-bug |
+| 15 | J18 + J31 | The stubs setting is read once (J18) and makes sklearn's `Ridge` lose all parameters (J31). Two **quick wins** (reset the cached resolver; `skip=skip \| {name}`), which together make the clean route for typed C builtins usable. | S2/S3 | trivial | likely-bug |
+| 16 | J17 | A Protocol with only `_` members matches nothing, with an unhelpful message. **Quick win** for the message; variance is debatable. | S2 | trivial | likely-bug (message) |
+| 17 | J43, J39, J47 | `parse_object` mutates list/dict inputs; slotted dataclass defaults crash; a failing `default_factory` gives no context. **Quick wins**. | S3 | trivial | likely-bug |
+| 18 | J35, J37, J33, J36, J34 | Stale `--config` in nested parsers; `register_type` serializer applied by union arm (silent data loss if used); quoted PEP 695 aliases; tuple keys; docstring-parser failure dropping parameters. | S3 | small | likely-bug |
 
-J23 (v5) is in (c). J15, J16 and J26 have fix branches and are in (d).
+J23 (v5) is in (c). Patches prototyped during this investigation (not yet branches): J04 + J44 (passes the upstream suite), J31, J39.
 
 ### (b) Design-level requests (debatable or intended)
 
@@ -143,7 +151,7 @@ J23 (v5) is in (c). J15, J16 and J26 have fix branches and are in (d).
 7. **Other v5 changes we noticed**: `init_args: {args: []}` for every
    `nn.Module` subclass without its own `__init__` (J49, cosmetic); a
    `jsonargparse.Unset` default no longer reloads (import-path denylist, J37).
-8. **What v5 fixed for us**: nested `class_path` parse time (J08: 35 and 17 CPU s
+8. **What v5 fixed for us**: nested `class_path` parse time (J08, our #1036: 35 and 17 CPU s
    down to 3.8 s on real configs; about 3x on another project); quadratic list
    parsing (J29); constructor errors raised as themselves (J28); unquoted
    recursive `type` aliases (J33); `Optional[S]` with an instance default now
@@ -152,20 +160,14 @@ J23 (v5) is in (c). J15, J16 and J26 have fix branches and are in (d).
    five suites traced to J01, J07, J23, J30's sklearn case or J45's renames;
    nothing else broke.
 
-### (d) Already fixed upstream or on our fix branches
+### (d) Fixed upstream by the maintainer
 
 | ID | Fix | What landing or backporting would unlock |
 |---|---|---|
-| J01 | branch `fix-factory-protocol-instances` (Protocols only) | Lifting the 4.51 pin in the projects that need callable-instance defaults; also needs the `Callable` (#1033) case |
-| J15 | branch `fix-subscripted-generic-init-args` | Dropping per-type marker ABCs (15 files in one project) and using `Codec[Spectrum]`-style annotations |
-| J16 | branch `fix-default-instance-non-field-attributes` | Dataclass defaults with derived attributes under `Optional`/unions/subclass mode (9 of 223 dataclasses in one project are known to break) |
-| J26 | branch `fix-tagged-union-instance-default` | Tagged unions with an instance default (one project capped at `<4.50` earlier) |
-| J08 | #1036 (main, v5 only) | A 4.x backport would retire a parked ~180-line private-API parse cache; otherwise moving to v5 does |
 | J29 | #975 (v5) | Large lists in typed fields; a backport is low value for us now (the workaround is in place) |
 | J28 | #1015 (v5) | Deleting two copies of a message-matching unwrapper and their tests |
 | J03 (#968) | 4.52.0 | Already fixed; staying on 4.51 keeps the leak, so this argues for moving off 4.51 once J01 lands |
 | J30 | #969 (v5 default off) | Instantiation stops; Namespace conversion and filling remain |
-| J04/J44, J31, J39 | Patches tested in scratch copies of v5 (not branches yet) | See entries; J04's passes the upstream suite |
 
 ---
 
@@ -173,22 +175,22 @@ J23 (v5) is in (c). J15, J16 and J26 have fix branches and are in (d).
 
 | ID | Title | Kind | Sev | Effort | Appetite | Status | Repro |
 |---|---|---|---|---|---|---|---|
-| J01 | Callable Protocol (and `Callable[..., C]`) rejects classes whose instances implement it | regression-or-pin | S1 | small | likely-bug | 4.51 ✓ 4.53 ✗ v5 ✗ | `J01_protocol_call_returns_class.py` |
+| J01 | Callable Protocol (and `Callable[..., C]`) rejects classes whose instances implement it *(work begun)* | regression-or-pin | S1 | small | likely-bug | 4.51 ✓ 4.53 ✗ v5 ✗ | `J01_protocol_call_returns_class.py` |
 | J02 | Protocol matching needs identical annotations: jaxtyping never equal; Modules need `-> Any` | bug | S2 | small | likely-bug / debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J02_protocol_exact_annotations.py` |
 | J03 | Version pins keep 4 of 6 projects on 4.51.0, which has the #968 union-default leak | regression-or-pin | S1 | n/a | n/a | leak: 4.51 ✗ 4.53 ✓ v5 ✓ | — |
 | J04 | Dataclass with a non-first base from another module: every field silently unvalidated | bug | S1 | small | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J04_mixin_base_unvalidated.py` |
 | J05 | Plain-class instance default: a partial override silently discards its values | bug | S1 | small–medium | debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J05_instance_default_partial_override.py` |
 | J06 | Dict fields in overlays: key set replaced, surviving keys merged; dotted form merges | intended-but-awkward | S1 | medium | debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J06_dict_overlay_key_set.py` |
 | J07 | LightningCLI 2.6.x calls APIs removed in v5 | lightning-interplay | S1 | small (Lightning) | n/a (PR open) | 4.51 ✓ 4.53 ✓ v5 ✗ | `J07_lightningcli_removed_v5_apis.py` |
-| J08 | Nested `class_path` parse time grows exponentially with depth | performance | S2 | done (v5) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✓ | `J08_nested_class_path_depth.py` |
+| J08 | Nested `class_path` parse time grows exponentially with depth *(work begun)* | performance | S2 | done (v5) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✓ | `J08_nested_class_path_depth.py` |
 | J09 | Container defaults of dataclasses dump as "Unable to serialize instance" | bug | S2 | small | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J09_undumpable_container_defaults.py` |
 | J10 | Global settings: not idempotent, no public getter, no scope | missing-feature | S2 | small | likely-bug / debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J10_global_settings_not_idempotent.py` |
 | J11 | Subclass mode: section files rejected, nested options hidden from `--help`, dump shape changes | intended-but-awkward | S2 | small | debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J11_subclass_mode_side_effects.py` |
 | J12 | Error messages bury the cause | error-message | S2 | medium | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ (better) | `J12_error_messages_bury_cause.py` |
 | J13 | `os.PathLike` stringifies anything; CLI `null` becomes `"None"` | bug | S2 | small | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J13_pathlike_null_and_coercion.py` |
 | J14 | A `str` value naming an existing file is read as a config (silent) | bug | S2 | small | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J14_str_value_read_as_config_file.py` |
-| J15 | Subscripted generic (`Model[int]`) rejects a subclass's `init_args` | bug | S2 | small (branch) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J15_subscripted_generic_subclass.py` |
-| J16 | Default instance with non-`__init__` attributes rejected under Optional/union/subclass mode | bug | S2 | small (branch) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J16_default_instance_nonfield_attrs.py` |
+| J15 | Subscripted generic (`Model[int]`) rejects a subclass's `init_args` *(work begun)* | bug | S2 | small (branch) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J15_subscripted_generic_subclass.py` |
+| J16 | Default instance with non-`__init__` attributes rejected under Optional/union/subclass mode *(work begun)* | bug | S2 | small (branch) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J16_default_instance_nonfield_attrs.py` |
 | J17 | Protocols with only `_` members match nothing; no variance | bug | S2 | trivial–small | likely-bug / debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J17_protocol_private_members.py` |
 | J18 | C builtins rejected for `Callable[[Tensor], Tensor]`; stubs setting read once | intended-but-awkward | S2 | trivial | intended / likely-bug | 4.51 ✓ 4.53 ✗ v5 ✗ | `J18_c_builtin_callable.py` |
 | J19 | No placeholder interpolation before validation | missing-feature | S2 | medium | debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J19_placeholder_in_typed_field.py` |
@@ -198,7 +200,7 @@ J23 (v5) is in (c). J15, J16 and J26 have fix branches and are in (d).
 | J23 | v5: a required `X \| None` can't be given `null` | v5-migration | S2 | medium | likely-bug | 4.51 ✓ 4.53 ✓ v5 ✗ | `J23_required_optional_null.py` |
 | J24 | Protocol-typed class default inside a dataclass default or union dumps as a bare path; not a fixpoint | bug | S2 | small | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J24_protocol_class_default_dump.py` |
 | J25 | A section file given to a parent group resets nullable sections | intended-but-awkward | S2 | small–medium | debatable | 4.51 ✗ 4.53 ✗ v5 ✗ | `J25_section_file_resets_section.py` |
-| J26 | Tagged union with an instance default rejects another member | regression-or-pin | S2 | small (branch) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J26_tagged_union_instance_default.py` |
+| J26 | Tagged union with an instance default rejects another member *(work begun)* | regression-or-pin | S2 | small (branch) | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J26_tagged_union_instance_default.py` |
 | J27 | One unevaluable annotation leaves every field of the class unvalidated | bug | S2 | small | likely-bug | 4.51 ✗ 4.53 ✗ v5 ✗ | `J27_quoted_forward_ref_in_union.py` |
 | J28 | Constructor errors reported as a union mismatch | error-message | S3 | done (v5) | n/a | 4.51 ✗ 4.53 ✗ v5 ✓ | `J28_ctor_error_union_report.py` |
 | J29 | Quadratic list parsing | performance | S3 | done (v5) | n/a | 4.51 ✗ 4.53 ✗ v5 ✓ | `J29_list_parse_quadratic.py` |
@@ -352,6 +354,8 @@ S2 · small · likely-bug · hit in 2 of 6 (one removed `from __future__` from i
 #### J01 Callable Protocol rejects classes whose instances implement it
 S1 · small · likely-bug · hit in 4 of 6 (an exact `==4.51.0` pin in one, 4.51 locks in two more, `-> Any` on three Protocols in another) · `repros/J01_protocol_call_returns_class.py`
 
+*Work begun: branch `fix-factory-protocol-instances` (draft PR in `prs/`) fixes the Protocol case, not the `Callable[..., Class]` case from #1033.*
+
 - **What happens**:
   ```python
   class DecoderFactory(Protocol):
@@ -468,6 +472,8 @@ S2 · small · likely-bug · hit in 1 of 6 (the saved config of every training r
 #### J15 Subscripted generic rejects a subclass's `init_args`
 S2 · small (branch `fix-subscripted-generic-init-args`) · likely-bug · hit in 2 of 6 (one added per-type marker ABCs: 15 files, +293 lines, plus a review rule; the other first misread it as a depth problem) · `repros/J15_subscripted_generic_subclass.py`
 
+*Work begun: branch `fix-subscripted-generic-init-args` (draft PR in `prs/`).*
+
 - **What happens**: `--model` typed `Model[int]`, `class_path: IntModel` with
   `--model.depth=2`: "Option 'depth' is not accepted". Plain `Model` works.
 - **Status**: 4.51 ✗ 4.53 ✗ v5 ✗.
@@ -477,6 +483,8 @@ S2 · small (branch `fix-subscripted-generic-init-args`) · likely-bug · hit in
 
 #### J16 Default instance with non-`__init__` attributes rejected
 S2 · small (branch `fix-default-instance-non-field-attributes`) · likely-bug · hit in 2 of 6 (a registry redesign; derived values turned into properties; 9 of 223 dataclasses in one project would break if used as defaults) · `repros/J16_default_instance_nonfield_attrs.py`
+
+*Work begun: branch `fix-default-instance-non-field-attributes` (draft PR in `prs/`); it fixes every shape tested.*
 
 - **What happens**: a dataclass default that sets `self.derived` (or `_cache`,
   or an `init=False` field) in `__post_init__` is rejected ("Option 'derived' is
@@ -853,6 +861,8 @@ S4 · not checked (the project removed argcomplete).
 #### J08 Nested `class_path` parse time grows exponentially with depth
 S2 · done on main (#1036, v5 only); backport medium · likely-bug · hit in 3 of 6 · `repros/J08_nested_class_path_depth.py`
 
+*Work begun: our #1036 is merged into main (in v5); there is no 4.x backport.*
+
 - A chain of `Optional[Base]` specs: on 4.53 depth 4 takes 0.06 CPU s and depth
   8 takes 2.6 s (about 2.5x per level); on v5 depth 8 takes 0.02 s. Real
   configs: 35.3 and 17.3 CPU s on 4.53 against 3.8 s each on v5, with identical
@@ -903,6 +913,8 @@ S1 (meta) · n/a (unblocked by J01, J18, J07) · hit in 6 of 6
 
 #### J26 Tagged union with an instance default rejects another member
 S2 · small (branch `fix-tagged-union-instance-default`) · likely-bug · hit in 1 of 6 (an earlier `<4.50` cap), possibly 2 · `repros/J26_tagged_union_instance_default.py`
+
+*Work begun: branch `fix-tagged-union-instance-default` (draft PR in `prs/`).*
 
 - `--u` typed `A | B` (tagged by `type: Literal[...]`) with default `A()`
   rejects `{"type": "b", "x": 3}`; fine without the default and with dotted
