@@ -1,23 +1,17 @@
-# jsonargparse: notes from heavy use
+# jsonargparse issues from heavy use
 
-I use jsonargparse for the training and pipeline configs of my research
-projects, and rely on it every day: nested dataclasses, `class_path` values
-several levels deep, callable Protocols, generics and LightningCLI. Thank you
-for it. This page collects the problems that came up along the way.
-
-There are a lot of them, partly because these projects use many features
-together, so I am filtering them myself. The first table is what I plan to send,
-a few at a time, as separate issues or pull requests; the rest are listed for
-context only. The order is by impact on my own work, not a judgment of what
-matters most for jsonargparse. There's no need to go through this page; it's
-here in case the background is useful.
+Problems found while using jsonargparse for training and pipeline configs:
+nested dataclasses with subclass mode, `class_path` values several levels deep,
+callable Protocols, generics and LightningCLI. The items are ordered by their
+impact on these projects. The first table lists the ones planned to be sent
+upstream, as issues or pull requests; the other tables are for reference.
 
 Every issue ID links to a longer description in [`inventory.md`](inventory.md),
 with a standalone script in [`repros/`](repros/). Each fix branch is cut from
 `main` (3b30c14); its new tests fail without the fix, the full test suite passes
 on Python 3.12 and 3.14, and ruff and mypy report nothing new.
 
-**Severity** (my guess): **S1** silent wrong values or lost validation in normal
+**Severity** (estimated): **S1** silent wrong values or lost validation in normal
 use, or blocks an upgrade · **S2** forces an awkward workaround, or is silent but
 needs an unusual setup · **S3** real but contained, or has a clean workaround ·
 **S4** cosmetic or rare.
@@ -41,7 +35,7 @@ needs an unusual setup · **S3** real but contained, or has a clean workaround �
 
 ## Fixed locally, lower priority
 
-Branches exist for these, but I don't plan to send them for now.
+Fix branches exist for these, but they are not planned to be sent for now.
 
 | ID | What goes wrong | Sev | Code | Tests | Docs | Changelog | Links |
 |---|---|---|---|---|---|---|---|
@@ -56,7 +50,7 @@ Branches exist for these, but I don't plan to send them for now.
 ## Other open points
 
 For context only: no fix work, and nothing planned. Several are intended or
-documented behaviour that was awkward for my use, not bugs.
+documented behaviour that was awkward in these projects, not bugs.
 
 | ID | What | Kind | Sev |
 |---|---|---|---|
