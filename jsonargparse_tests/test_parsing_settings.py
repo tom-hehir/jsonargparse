@@ -365,6 +365,14 @@ def test_default_subclass_disable_functions(subclass_behavior):
     assert not subclasses_disabled_selectors
 
 
+def test_subclass_enable_function_repeated(subclass_behavior):
+    from jsonargparse._common import subclasses_disabled_selectors
+
+    set_parsing_settings(subclasses_enabled=["is_pure_dataclass"])
+    set_parsing_settings(subclasses_enabled=["is_pure_dataclass"])
+    assert "is_pure_dataclass" not in subclasses_disabled_selectors
+
+
 def test_unknown_subclass_disable_function():
     with pytest.raises(ValueError, match="no function 'unknown_selector'"):
         set_parsing_settings(subclasses_enabled=["unknown_selector"])

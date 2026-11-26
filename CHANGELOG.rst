@@ -273,6 +273,9 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- ``set_parsing_settings`` raising ``ValueError`` when a function name in
+  ``subclasses_enabled`` was already enabled, instead of being a no-op (`#????
+  <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^

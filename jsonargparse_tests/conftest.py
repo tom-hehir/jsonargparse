@@ -191,6 +191,7 @@ def subclass_behavior(monkeypatch) -> Iterator[None]:
 
     monkeypatch.setattr("jsonargparse._common.subclasses_enabled_types", set())
     monkeypatch.setattr("jsonargparse._common.subclasses_disabled_types", set())
+    monkeypatch.setattr("jsonargparse._common.subclasses_enabled_selectors", set())
     _cached_class_parsers.clear()
     with patch.dict("jsonargparse._common.subclasses_disabled_selectors"):
         yield

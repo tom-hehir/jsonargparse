@@ -686,6 +686,7 @@ subclasses_disabled_selectors: dict[str, Callable[[type], bool | int]] = {
     "is_attrs_class": is_attrs_class,
     "is_final_class": is_final_class,
 }
+subclasses_enabled_selectors: set[str] = set()
 
 
 def is_subclasses_disabled(cls) -> bool:
@@ -711,9 +712,11 @@ def subclass_type_behavior(
     """Configures whether class types accept or not subclasses."""
     for enable_item in subclasses_enabled or []:
         if isinstance(enable_item, str):
-            if enable_item not in subclasses_disabled_selectors:
+            if enable_item in subclasses_disabled_selectors:
+                subclasses_disabled_selectors.pop(enable_item)
+                subclasses_enabled_selectors.add(enable_item)
+            elif enable_item not in subclasses_enabled_selectors:
                 raise ValueError(f"There is no function '{enable_item}' registered in subclasses_disabled")
-            subclasses_disabled_selectors.pop(enable_item)
         elif inspect.isclass(enable_item):
             subclasses_enabled_types.add(enable_item)
         else:

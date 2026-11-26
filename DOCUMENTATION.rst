@@ -2998,10 +2998,10 @@ returns ``True`` if subclasses should be disabled for it.
 ``subclasses_enabled`` accepts a list of types and function names. A given type
 and its descendants have subclass support enabled, and take precedence over
 ``subclasses_disabled``. A function name must be one previously registered in
-``subclasses_disabled``, and the effect is to unregister it. The disabling
-functions registered by default are ``is_pure_dataclass``,
-``is_pydantic_model``, ``is_attrs_class`` and ``is_final_class``. These are not
-applied to abstract classes, see above.
+``subclasses_disabled``, and the effect is to unregister it. Enabling a function
+that is already unregistered has no effect. The disabling functions registered
+by default are ``is_pure_dataclass``, ``is_pydantic_model``, ``is_attrs_class``
+and ``is_final_class``. These are not applied to abstract classes, see above.
 
 Since ``subclasses_enabled`` takes precedence, subclass support can be kept
 disabled for dataclasses but enabled for a specific one:
