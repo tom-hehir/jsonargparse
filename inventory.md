@@ -16,7 +16,7 @@ has the detail.
   code, a pin or an incident caused by the issue.
 
 > [!IMPORTANT]
-> **53 open issues** (🔴 5 S1 · 🟠 19 S2 · 🟡 18 S3 · ⚪ 11 S4), **5 fixed
+> **54 open issues** (🔴 5 S1 · 🟠 19 S2 · 🟡 18 S3 · ⚪ 12 S4), **5 fixed
 > upstream** (🟢), and one found not to be a jsonargparse issue.
 
 <a id="contents"></a>
@@ -88,11 +88,11 @@ discussion upstream, not a bug report.
 For the release-candidate thread (mauvilsa/jsonargparse#999). Every v5-only
 test failure in our five suites traced to [J01](#j01), [J07](#j07), [J23](#j23),
 [J30](#j30)'s sklearn case, or [J45](#j45)'s renames; nothing else broke.
+With `unset_sentinel=True` on, [J59](#j59) also breaks saved configs.
 
 1. **[J23](#j23): a required `X | None` parameter can't take `null` with the
    default settings.** Intended (#678, #969); `unset_sentinel=True` is the way
-   to allow it, and in our tests it works once [J59](#j59) and [J13](#j13) are
-   fixed. Ask: say so in the migration guide's "become required" entry and in
+   to allow it, and it works for us once [J59](#j59) is fixed. Ask: say so in the migration guide's "become required" entry and in
    the v4 deprecation message. Docs only, not an issue.
 2. **[J07](#j07): LightningCLI 2.6.x doesn't run on v5.** It calls APIs v5
    removed. Lightning caps `jsonargparse<5` only in its extras, so a fresh
@@ -177,7 +177,7 @@ Sorted by severity, then ID. 🔧 marks the ones with a fix branch.
 | [J25](#j25) | A section file given to a parent group resets nullable sections | intended-but-awkward | 🟠 S2 | small–medium | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J25_section_file_resets_section.py`](repros/J25_section_file_resets_section.py) |
 | [J26](#j26) | Tagged union with an instance default rejects another member 🔧 | regression-or-pin | 🟠 S2 | small (branch) | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J26_tagged_union_instance_default.py`](repros/J26_tagged_union_instance_default.py) |
 | [J27](#j27) | One unevaluable annotation leaves every field of the class unvalidated 🔧 | bug | 🟠 S2 | small | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J27_quoted_forward_ref_in_union.py`](repros/J27_quoted_forward_ref_in_union.py) |
-| [J59](#j59) | With `unset_sentinel=True`, a `None` in a `Callable \| None` field is dumped as "Unable to serialize instance None" | regression-or-pin | 🟠 S2 | trivial | likely-bug | 4.51 ✅ 4.53 ❌ v5 ❌ | [`J59_unset_sentinel_none_callable_dump.py`](repros/J59_unset_sentinel_none_callable_dump.py) |
+| [J59](#j59) | With `unset_sentinel=True`, a `None` in `Path`/`timedelta`/Callable `\| None` fields is dumped as text; saved configs don't reload | bug | 🟠 S2 | trivial | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J59_unset_sentinel_none_dumped_as_text.py`](repros/J59_unset_sentinel_none_dumped_as_text.py) |
 | [J22](#j22) | `dump()` drops explicit `null`s; reload gives the default | intended-but-awkward | 🟡 S3 | small | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J22_dump_drops_null.py`](repros/J22_dump_drops_null.py) |
 | [J30](#j30) | `class_path` specs in `Any` fields are converted to Namespaces and filled; input mutated | intended-but-awkward | 🟡 S3 | small | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J30_any_spec_namespace.py`](repros/J30_any_spec_namespace.py) |
 | [J31](#j31) | `stubs_resolver_allow_py_files=True` gives sklearn `Ridge` zero parameters | bug | 🟡 S3 | trivial | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J31_stubs_py_files_sklearn_ridge.py`](repros/J31_stubs_py_files_sklearn_ridge.py) |
@@ -207,6 +207,7 @@ Sorted by severity, then ID. 🔧 marks the ones with a fix branch.
 | [J56](#j56) | `Union[Dataclass, dict]` with an empty-dict default is filled with the dataclass defaults | warning-noise | ⚪ S4 | small | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J56_union_dataclass_dict_empty_default.py`](repros/J56_union_dataclass_dict_empty_default.py) |
 | [J57](#j57) | Bare-generic dataloader fields failed with `__args__` | bug | ⚪ S4 | ? | ? | worked around in our code; not rechecked | — |
 | [J58](#j58) | `--print_config` writes relative paths as given; `--config` resolves them against the file | intended-but-awkward | ⚪ S4 | n/a | intended | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J58_print_config_relative_paths.py`](repros/J58_print_config_relative_paths.py) |
+| [J60](#j60) | With `unset_sentinel=True`, `--help` shows required options as `default: Unset` | bug | ⚪ S4 | trivial | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J60_help_default_unset.py`](repros/J60_help_default_unset.py) |
 
 Fixed upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21),
 [J28](#j28), [J29](#j29). [J46](#j46) [is not a jsonargparse issue](#not-an-issue).
@@ -528,6 +529,9 @@ also a ~50-line convention docstring. It also blocks `unset_sentinel=True`
 ([J23](#j23)): with that setting `None` is validated like any other value, so a
 `None` reaching a path field from a config or a Python mapping becomes
 `'None'` too. That broke 3 tests in one project; the fix branch fixes them.
+The [J59](#j59) fix (try `None` first) also fixes every `None` case here,
+including `--p=null`, so with it this branch would only matter for the
+coercion of non-path values.
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌. A YAML `p: null` gives `None` correctly; only
 the command line (or any source passing a real `None` to the union) is
@@ -537,6 +541,72 @@ affected.
 deserializer `str`, and the `PathLike` arm is tried before `None`.
 
 **Fix:** a deserializer that accepts only `str`/`PathLike`; try `None` first.
+
+#### <a id="j59"></a>J59 With `unset_sentinel=True`, a `None` is dumped as text when another union member serializes it
+🟠 **S2** · trivial · likely-bug · hit in 4 of 6 · [`J59_unset_sentinel_none_dumped_as_text.py`](repros/J59_unset_sentinel_none_dumped_as_text.py)
+
+**In short:** with `set_parsing_settings(unset_sentinel=True)`, a `None` in a
+field typed `Path | None`, `os.PathLike | None` or `timedelta | None` is dumped
+as the bare text `None`, which reloads as the string `'None'` or fails. In a
+`Callable | None` or callable-Protocol `| None` field it is dumped as
+`Unable to serialize instance None`. `int | None` and `str | None` are fine.
+
+**Why:**
+
+1. With the default settings `None` means "not given", so it is never
+   serialized: it is simply written as `null`.
+2. With `unset_sentinel=True`, `None` is a real value, so the dump serializes it
+   like any other value.
+3. To serialize a union value, jsonargparse tries the members in order and
+   keeps the first that doesn't raise.
+4. The `Path`, `os.PathLike` and `timedelta` serializers are plain `str`, and
+   the Callable one returns an error text instead of raising (since #966,
+   4.52). So they all accept `None`, and the `None` member is never tried.
+
+**Example:**
+
+```python
+set_parsing_settings(unset_sentinel=True)
+
+@dataclass
+class Config:
+    path: str | Path | None = None
+    interval: timedelta | None = None
+    fn: Callable[[int], Head] | None = None
+
+p.add_class_arguments(Config, "x")
+dumped = p.dump(p.parse_args([]))
+# x:
+#   path: None
+#   interval: None
+#   fn: Unable to serialize instance None
+p.parse_string(dumped)   # fails on interval; path would come back as 'None'
+```
+
+**Impact on us:** it blocks adopting `unset_sentinel=True` ([J23](#j23)).
+LightningCLI is hit through `Trainer(max_time=..., val_check_interval=...)`,
+`ModelCheckpoint(dirpath=..., train_time_interval=...)` and `ckpt_path`: a
+saved `config.yaml` can't be re-run (`Timer(duration='None') is not a valid
+duration`). Found independently in four projects; in one it broke 15 tests
+through a callable-Protocol `| None = None` field. Most test suites don't notice,
+since the bug only shows when a saved config is loaded again.
+
+**Status:** only with `unset_sentinel=True`. `Path`, `os.PathLike`,
+`timedelta`: 4.51 ❌ 4.53 ❌ v5 ❌. Callable and callable Protocol: 4.51 ✅
+4.52 ❌ 4.53 ❌ v5 ❌ (main 670f094 too).
+
+**Workaround:** none short of leaving `unset_sentinel` off.
+
+**Cause:** `sort_subtypes_for_union` (`_typehints.py`) orders the members for
+the value being dumped, but never puts `NoneType` first for `None`. Related:
+[J37](#j37) (a registered serializer applied to values not of its type) is the
+same pattern with a non-`None` value.
+
+**Fix:** in `sort_subtypes_for_union`, when the value is `None`, try `NoneType`
+first (one line). Tested on main 670f094: the repro, the `None` part of
+[J13](#j13) (`--p=null` for `os.PathLike | None`) and the project cases all
+pass, and so does jsonargparse's own suite (2982 passed). It replaces the
+narrower two-line fix in the Callable branch tried first.
 
 #### <a id="j14"></a>J14 A `str` value that names an existing file is replaced by the file's contents
 🟠 **S2** · small · likely-bug · incident in 1 of 6 · [`J14_str_value_read_as_config_file.py`](repros/J14_str_value_read_as_config_file.py)
@@ -698,7 +768,9 @@ matching return annotation or stub (this is intended). Setting
 before the first stub lookup; set later, it is ignored. (`math.sqrt` is
 correctly rejected: its stub returns `float`.)
 
-**Impact on us:** cited by pins in 5 of 6 projects.
+**Impact on us:** cited by pins in 5 of 6 projects. The 2026-11-26 v5 run also
+found it latent in one project's callable-transform field, which would reject
+`torch.log1p`; no test covers that path.
 
 **Status:** 4.51 ✅ 4.53 ❌ v5 ❌. The late setting is ignored on 4.53 and v5.
 
@@ -899,6 +971,19 @@ and dataclass sections are left untouched. The same happens inside `Any` fields
 
 #### <a id="j57"></a>J57 Bare-generic dataloader fields failed with `__args__`
 ⚪ **S4** · resolved in the project by typing the fields `Any`; not rechecked.
+
+#### <a id="j60"></a>J60 With `unset_sentinel=True`, `--help` shows required options as `default: Unset`
+⚪ **S4** · trivial · likely-bug · seen in 2 of 6 (with the setting on) · [`J60_help_default_unset.py`](repros/J60_help_default_unset.py)
+
+**In short:** with `set_parsing_settings(unset_sentinel=True)`, every required
+option is listed as `(required, type: int, default: Unset)`, as if the sentinel
+were a default value. Cosmetic. With the default settings it reads
+`(required, type: int)`.
+
+**Status:** 4.51 ❌ 4.53 ❌ v5 ❌ (main 670f094 too), only with the setting on.
+
+**Fix:** leave out `default:` when the default is `Unset`, as is done for `None`
+today.
 
 [↑ Contents](#contents)
 
@@ -1259,46 +1344,6 @@ flags (`--u.type=b`).
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌. Broken since 4.50 (#921).
 
-#### <a id="j59"></a>J59 With `unset_sentinel=True`, a `None` in a callable field is dumped as "Unable to serialize instance None"
-🟠 **S2** · trivial · likely-bug · hit in 1 of 6 · [`J59_unset_sentinel_none_callable_dump.py`](repros/J59_unset_sentinel_none_callable_dump.py)
-
-**In short:** with `set_parsing_settings(unset_sentinel=True)`, a field typed
-`Callable[...] | None` or `SomeCallableProtocol | None` whose value is `None`
-is dumped as the text `Unable to serialize instance None`. The dump then fails
-to load back. Plain `int | None` fields are dumped as `null`, as expected.
-
-**Example:**
-
-```python
-class Factory(Protocol):
-    def __call__(self, *, d: int) -> Head: ...
-
-@dataclass
-class Config:
-    f: Factory | None = None
-
-p.add_class_arguments(Config, "x")
-p.dump(p.parse_args([]))   # writes   f: Unable to serialize instance None
-```
-
-**Impact on us:** it blocks adopting `unset_sentinel=True` ([J23](#j23)): in
-one project it broke 15 tests, through a head-defaults field typed
-`HeadFactory | None = None`, whose saved configs no longer reloaded.
-
-**Status:** 4.51 ✅ 4.52 ❌ 4.53 ❌ v5 ❌ (main 670f094 too), only with
-`unset_sentinel=True`. With the default settings `None` is the unset value and
-is never serialized.
-
-**Cause:** when dumping a union, the Callable arm in `adapt_typehints`
-(`_typehints.py`) serializes the value with `serialize_as_import_path`, which
-since #966 (4.52) returns the text "Unable to serialize instance ..." instead of
-raising. So the Callable arm accepts `None` and the `None` arm is never tried.
-4.51 called `object_path_serializer`, which raised.
-
-**Fix:** in that branch, reject `None` when serializing (two lines), so the
-union falls through to `None`. Tested in a copy of main: the repro and all 15
-tests pass.
-
 [J01](#j01) and [J18](#j18), both from 4.52, are the regressions behind most of our version pins ([J03](#j03)).
 
 [↑ Contents](#contents)
@@ -1396,12 +1441,13 @@ from `null`, and #969 made these parameters required, with a test asserting that
 the docs describes the setting.
 
 **Workaround, tested (2026-11-26):** `set_parsing_settings(unset_sentinel=True)`
-when moving to v5. On upstream main 670f094 with the J01 fix, two projects'
-suites ran with and without it: it fixed all 21 and 14 `null` failures and
-broke nothing, once two small jsonargparse bugs it exposes were patched in
-both runs: [J59](#j59) (a `None` in a callable field is dumped as text) and
-[J13](#j13) (a `None` path becomes `'None'`). Without those patches it broke 18
-tests in one project. Things to adjust when adopting it:
+when moving to v5, once [J59](#j59) is fixed. On upstream main 670f094 with the
+J01 fix, two projects' suites ran with and without it: it fixed all 21 and 14
+`null` failures, and without a fix for J59 it broke 18 tests in one project. The
+test suites alone understate J59, though: in four projects a `--print_config` or
+saved LightningCLI config with the setting on wrote `None` as text for
+`Path`/`timedelta` fields and couldn't be re-run, which no test caught. Things
+to adjust when adopting it:
 
 - don't turn it on under 4.x: there these parameters aren't required yet, so a
   missing one reaches the constructor as `Unset`;
@@ -1548,6 +1594,12 @@ were only the old class's *defaults*.
 required optimizer fields. With the fix, on v5 check whether any of our
 overlays switch `class_path` and rely on values carrying over: those now need
 `prior_init_args: keep`.
+
+Checked on main 670f094 (2026-11-26): one project has a test that relies on the
+carry-over and needs `prior_init_args: keep`. In two projects, 13 configs
+switch the default `Adam` to `AdamW` and set only `lr`, so they now train with
+AdamW's own `weight_decay=0.01` instead of 0.0. That is the intended effect of
+the fix and not a problem for us.
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌ (5.0.0rc2); main ✅ (3b30c14, #1038).
 

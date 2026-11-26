@@ -82,7 +82,8 @@ status in the inventory.
 | `J54_list_field_from_file.py` | J54 | ✗ (works with `sub_configs=True`) | ✗ (same) | ✗ (same) |
 | `J56_union_dataclass_dict_empty_default.py` | J56 | ✗ | ✗ | ✗ |
 | `J58_print_config_relative_paths.py` | J58 | ✗ | ✗ | ✗ |
-| `J59_unset_sentinel_none_callable_dump.py` | J59 | ✓ | ✗ | ✗ (also main 670f094; added 2026-11-26) |
+| `J59_unset_sentinel_none_dumped_as_text.py` | J59 | ✗ (`Path`/`timedelta`; Callable ✓) | ✗ | ✗ (also main 670f094; widened 2026-11-26) |
+| `J60_help_default_unset.py` | J60 | ✗ | ✗ | ✗ (with `unset_sentinel=True`; added 2026-11-26) |
 
 No script for J03 (the #968 leak needs real model classes to trigger; no minimal
 form was found), J20, J32, J45, J50, J52, J55, J57 (features, intended behaviour

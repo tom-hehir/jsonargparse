@@ -19,7 +19,7 @@ under the default settings is intended (see [J23](../inventory.md#j23)):
 > We have fields like that (`None` meaning "variable count"), and with
 > `unset_sentinel=True` they work as intended on v5.
 
-Before relying on `unset_sentinel=True`, [J59](../inventory.md#j59) and
-[J13](../inventory.md#j13) need fixing: with the setting on, a `None` in a
-callable field is dumped as "Unable to serialize instance None", and a `None`
-path becomes `'None'`.
+Before relying on `unset_sentinel=True`, [J59](../inventory.md#j59) needs
+fixing: with the setting on, a `None` in a `Path`, `timedelta` or callable field
+is dumped as text, so saved configs (including LightningCLI's `config.yaml`)
+don't reload.

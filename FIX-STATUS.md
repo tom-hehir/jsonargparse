@@ -27,10 +27,11 @@ rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
 | | ID | Branch (diff on GitHub) | Decisions or flags | Port to v4 |
 |---|---|---|---|---|
 | 🔴 | [J01](inventory.md#j01) | [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/d13b66eed01b61708c81c883c473d213f0d27fa9) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/4d05a3e431a043528962dbdb8f858598e4f35164) | Commit 2 (`Callable`) relaxes a check added on purpose in 4.52 (#959) and checks `Callable` by return type only, as for functions. It can be dropped without affecting commit 1. Alone it doesn't unblock one of our projects on v5: its `nn.Module` losses also need `-> Any` on their Protocol (J02) | manual port |
+| 🔴 | [J59](inventory.md#j59) | no branch yet | One line in `sort_subtypes_for_union`: try `NoneType` first when the value is `None`. Tested on main 670f094 (2982 passed). Also fixes the `None` part of J13 | manual (1 line) |
 | 🔴 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | [`fix-default-instance-non-field-attributes`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/59bdc3dc0492680eae30e45116dc19ef83bfd72d) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/de6966ad159b48415afed833b591d10029906ea6) | Commit 2 reads `__init__` parameters with `getattr`, which also fixes slotted dataclasses (J39) on the same lines. Can be split if wanted | manual |
 | 🔴 | [J24](inventory.md#j24) | [`fix-protocol-class-default-dump`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-class-default-dump) | Nested class defaults now dump as `class_path` + `init_args`, like a plain field already does; the alternative (bare path) is offered | source applies |
 | 🔴 | [J15](inventory.md#j15) | [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args) | none | manual (3 lines) |
-| 🔴 | [J13](inventory.md#j13) | [`fix-pathlike-coercion`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-pathlike-coercion) | Whether `os.PathLike` should reject `7` or lists is left as a question: rejecting would break numeric paths like `path: 2024`. Also needed for `unset_sentinel=True` (J23): it fixed the 3 path failures in that test | applies |
+| 🟠 | [J13](inventory.md#j13) | [`fix-pathlike-coercion`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-pathlike-coercion) | Whether `os.PathLike` should reject `7` or lists is left as a question: rejecting would break numeric paths like `path: 2024`. Also needed for `unset_sentinel=True` (J23): it fixed the 3 path failures in that test | applies |
 | 🟠 | [J14](inventory.md#j14) | [`fix-str-value-read-as-config`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-str-value-read-as-config) | Precedent: the maintainer fixed the same symptom for `os.PathLike` unions (#516/#518). The prototype keeps a path when the file is plain text; it doesn't remove the repeated reads of large files | manual |
 | 🟠 | [J04](inventory.md#j04) + [J44](inventory.md#j44) | [`fix-inherited-annotation-namespace`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-inherited-annotation-namespace) | Mirrors upstream's own per-module resolution (#936). File before J27 (same function) | manual (trivial) |
 | 🟠 | [J26](inventory.md#j26) | [`fix-tagged-union-instance-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default) | Reworked for #1038: switching member discards the old member's values (`C(n=5)` + `{"tag": "b"}` gives `B()`, where 4.49 gave `B(n=5)`). Consistent with #1038 | manual |
@@ -42,8 +43,8 @@ rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
 | 🟡 | [J47](inventory.md#j47) | [`fix-default-factory-error-context`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-factory-error-context) | Re-raises as `ValueError` (same wording as the existing wrapper nearby), so the exception type changes; `add_note` isn't used in the codebase | applies |
 | ⚪ | [J39](inventory.md#j39) | [`fix-slotted-dataclass-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-slotted-dataclass-default) | Superseded by J16's commit 2; keep only if J16 isn't filed | manual |
 
-J59 (planned 6th) has no branch yet; the two-line fix in its inventory entry was
-tested in a scratch copy. J23 turned out to be intended (see its entry): no
+J59 (planned 2nd) has no branch yet; the one-line fix in its inventory entry was
+tested in a scratch copy, with jsonargparse's own suite. J23 turned out to be intended (see its entry): no
 issue, just a docs note for the v5 thread. J12 (issue only, not planned) has
 no branch.
 
@@ -56,10 +57,11 @@ no branch.
 
 ## Filing order
 
-Two or three at a time, in README order: J01 first, with the comment in the v5
-thread (#999), which can carry the J23 docs note; then J16, J24 and J15; then
-J13 and J59, which together unblock `unset_sentinel=True` (J23); then the J14
-issue, J04 + J44 and J26. If J27 is ever sent, file it after J04, since both
+Two or three at a time, in README order: J01 and J59 first, both promised in
+the comment in the v5 thread (#999), which also carries the J23 docs note; J59
+unblocks `unset_sentinel=True` (J23). Then J16, J24 and J15; then J13 (only its
+coercion part is left once J59 is in), the J14 issue, J04 + J44 and J26. If
+J27 is ever sent, file it after J04, since both
 change the same function. The 🟡 items stay local for now.
 
 ## Not worked on
