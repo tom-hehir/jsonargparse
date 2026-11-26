@@ -31,6 +31,10 @@ dataclass with `subclasses_enabled=["is_pure_dataclass"]`, or a plain base class
 with a dataclass subclass instance as default, it has failed since such defaults
 are accepted (4.42).
 
+The second commit fixes a related failure on the same lines: a default instance
+of a dataclass with `slots=True` fails with `vars() argument must have __dict__
+attribute`, also for a plain `type=DataSlots`.
+
 ### Cause
 
 `convert_to_dict` builds the `init_args` of a dataclass instance from
@@ -62,6 +66,18 @@ right for some dataclasses that work on main:
 The signature handles both, and also follows a `**kwargs` forwarded to a parent
 class.
 
+In the second commit, the parameters are read with `getattr` instead of
+filtering `vars(value)`, so a dataclass with slots, which has no `__dict__`,
+works too, and the filter step goes away:
+
+```python
+if dataclasses.is_dataclass(value_type):
+    params = get_signature_parameters(value_type)
+    attributes = {p.name: getattr(value, p.name) for p in params if hasattr(value, p.name)}
+else:
+    attributes = {**vars(value), **get_pydantic_extra_fields(value)}
+```
+
 Pydantic models and attrs classes are unchanged. Pydantic dataclasses are
 dataclasses, so they get the same filter; an attribute set in their
 `__post_init__` failed in the same way and now works.
@@ -74,7 +90,11 @@ dataclasses, so they get the same filter; an attribute set in their
   checks that a command-line value parses and instantiates, and that the dump
   doesn't include those attributes and parses back to the same config. It fails
   on main.
-- The existing tests pass and all changed lines are covered.
+- `test_dataclass_slots_instance_default` (second commit) uses a `slots=True`
+  dataclass instance as default of the type and of its `Optional`, checking
+  parse, instantiate and dump. It fails with only the first commit.
+- The existing tests pass on Python 3.12 and 3.14, and all changed lines are
+  covered.
 - Also checked by hand: `Union[Data, Other]`, a plain base class with a
   dataclass subclass default, public attributes set in `__post_init__`, a nested
   dataclass default whose field is typed as a base dataclass and defaults to a
@@ -94,6 +114,14 @@ dataclasses, so they get the same filter; an attribute set in their
   dataclass type already does: an attribute set from an unresolved `**kwargs`
   of a hand-written `__init__`, and a pydantic dataclass field whose alias is
   the only accepted name. In both cases the default's value is not kept.
+- With `getattr`, a parameter of a hand-written `__init__` that the instance
+  doesn't store, but that exists as a class attribute of the same name, would
+  now be read from the class; `vars()` didn't see it. This seems unlikely in
+  practice; the `hasattr` check skips parameters that are not stored at all,
+  e.g. `InitVar`s.
+- The two commits can be split into two PRs if preferred; the slots fix alone
+  would be a `hasattr(value, "__dict__")` branch on the current code.
+- On `v4` the same filter applies by hand (`convert_to_dict` there has no pydantic extra fields line, so the diff context differs); `get_signature_parameters` is already imported in `_signatures.py`.
 
 ## Before submitting
 

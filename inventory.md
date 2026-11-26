@@ -100,7 +100,7 @@ couldn't use. Issues with a clean workaround are down-ranked.
 
 | # | ID | Why it matters | Sev | Effort | Appetite |
 |---|---|---|---|---|---|
-| 1 | [J01](#j01) | A callable Protocol (or `Callable[..., Class]`) rejects classes whose instances implement it, even as the field's own default. Keeps 3 of 6 projects off 4.52+ and v5; a fourth gave up its return types. 🔧 *Work begun: branch `fix-factory-protocol-instances`, draft PR in `prs/`; covers Protocols, not the `Callable` case from #1033.* | 🔴 S1 | small | likely-bug |
+| 1 | [J01](#j01) | A callable Protocol (or `Callable[..., Class]`) rejects classes whose instances implement it, even as the field's own default. Keeps 3 of 6 projects off 4.52+ and v5; a fourth gave up its return types. 🔧 *Work begun: branch `fix-factory-protocol-instances`, draft PR in `prs/`; commit 1 covers Protocols, a separable commit 2 the `Callable` case.* | 🔴 S1 | small | likely-bug |
 | 2 | [J04](#j04) + [J44](#j44) | Inherited dataclass fields are resolved in the wrong module's namespace: every field of a class silently unvalidated ([J04](#j04)), or a field bound to the wrong class ([J44](#j44)). **Quick win**: a per-base resolution patch is tested and the suite passes. | 🔴 S1 | small | likely-bug |
 | 3 | [J15](#j15) | A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's own `init_args`, so the precise annotation can't be used. One project added per-type marker ABCs instead (15 files, +293 lines, plus a review rule). 🔧 *Work begun: branch `fix-subscripted-generic-init-args`, draft PR in `prs/`.* | 🟠 S2 | small | likely-bug |
 | 4 | [J14](#j14) | A `str \| SomeClass` value naming an existing file is replaced by the file's contents, silently; a multi-GB file is read several times (one incident hung a run). Forced a path-alias convention in 28 files across 4 projects. | 🟠 S2 | small | likely-bug |
@@ -151,11 +151,12 @@ couldn't use. Issues with a clean workaround are down-ranked.
    it work; flipping that default fails 111 upstream tests, so there is no
    one-line fix. Ask: decide the representation, and meanwhile name
    `unset_sentinel=True` in the deprecation message and migration guide.
-2. **#1033 extends [J01](#j01) to `Callable[..., Class]`** and is listed under "Fixed",
-   not in the migration guide. A class whose instances are the callable is now
-   rejected for `Callable[[int], Base]`. The existing fix branch covers
-   Protocols only. Ask: a guide entry, and the same conformance check for
-   `Callable`.
+2. **[J01](#j01) also covers `Callable[..., Class]`**: since 4.52 (not v5; an
+   earlier note here blamed #1033), a class whose instances are the callable is
+   rejected for `Callable[[int], Base]`, as for callable Protocols. The fix
+   branch now has a separate second commit for the `Callable` case, which
+   relaxes a check added on purpose in 4.52 (#959), so it is a question for
+   the maintainer rather than plain feedback.
 3. **LightningCLI is not v5-ready** ([J07](#j07)). Lightning 2.6.x calls
    `add_instantiator`, `instantiate_classes` and `skip_none`; Lightning main
    still calls the per-parser `add_instantiator` and pins
@@ -388,7 +389,7 @@ Resolved upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21), 
 🔴 **S1** · small · likely-bug · hit in 4 of 6 (an exact `==4.51.0` pin in one, 4.51 locks in two more, `-> Any` on three Protocols in another) · [`J01_protocol_call_returns_class.py`](repros/J01_protocol_call_returns_class.py)
 
 > [!NOTE]
-> **🔧 Work begun**: branch `fix-factory-protocol-instances` (draft PR in `prs/`) fixes the Protocol case, not the `Callable[..., Class]` case from #1033.
+> **🔧 Work begun**: branch `fix-factory-protocol-instances` (draft PR in `prs/`), rebased on main 2026-11-26: commit 1 fixes the Protocol case, and a separable commit 2 the `Callable[..., Class]` case.
 
 - **What happens**:
   ```python
@@ -405,7 +406,7 @@ Resolved upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21), 
   `Expected '__main__.DecoderChoice' to be a subclass of Decoder`: the field's own
   default is rejected, so every parse of `Model` fails. `class_path:
   DecoderChoice` fails too, and so does `Callable[[int], Decoder]` given a class
-  with callable instances (#1033). The message never mentions the Protocol.
+  with callable instances (also since 4.52). The message never mentions the Protocol.
 - **Status**: 4.51 ✅ 4.52 ❌ 4.53 ❌ v5 ❌. In one project this was 82 of 89
   v5-only test failures; in another 137 of 140.
 - **Workaround**: stay on 4.51; or annotate the Protocol's return as `Any`
@@ -423,7 +424,7 @@ Resolved upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21), 
   Suggested: the branch's conformance check, also for `Callable[[...], Class]`
   with an arity check.
 - **Upstream summary**: since 4.52.0 a Protocol whose `__call__` returns a class
-  (and since #1033 a `Callable[..., Class]`) is treated as a factory for that
+  (and likewise a `Callable[..., Class]`) is treated as a factory for that
   class, so a class whose *instances* implement it is rejected, even as the
   field's default. Repro above. Expected (4.51): accepted.
 
@@ -1189,7 +1190,7 @@ Statements in the tracker that this work corrects or extends:
    alias works), that private members of mixed Protocols are not checked, and
    that unannotated implementer methods are rejected.
 7. **Protocols with `__call__` (Being fixed)**: the branch does not cover
-   `Callable[[...], Class]`, which #1033 changed in the same way on v5, and it
+   `Callable[[...], Class]`, which 4.52 changed in the same way, and it
    rejects a `__call__` without a return annotation against a Protocol returning
    a class, which 4.51 accepted.
 8. **Undumpable defaults**: extend to lists, tuples and dicts of dataclass or

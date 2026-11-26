@@ -14,6 +14,10 @@ and 5.0.0rc2, with severity and a shortlist) is in [`inventory.md`](inventory.md
 with one standalone script per issue in [`repros/`](repros/). Where the two
 disagree, `inventory.md` is newer; its last section lists the corrections.
 
+Fix branches for the shortlist (2026-11-26), with links to their diffs, their
+size, and whether each should go upstream as a PR or as an issue first, are in
+[`FIX-STATUS.md`](FIX-STATUS.md). Issue drafts are in [`issues/`](issues/).
+
 ## Being fixed
 
 | Issue | Broken since | Fix |
@@ -124,8 +128,9 @@ Present on both 4.53.0 and main. None of these is being worked on here.
   logged at debug level, and the class is left with no parameters. Without the
   setting `Ridge` parses; other sklearn estimators tried were unaffected. Also
   on 4.51.0, with sklearn 1.8.0. Low priority and not being pursued: no fix
-  branch, nothing upstream. We avoid the setting instead (astral annotates the
-  callable as `Callable[[Tensor], Any]`, see the entry on C builtins below).
+  branch, nothing upstream. We avoid the setting instead (one of our projects
+  annotates the callable as `Callable[[Tensor], Any]`, see the entry on C
+  builtins below).
 
 ## Intended behaviour, or not reproduced
 

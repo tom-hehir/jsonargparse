@@ -38,12 +38,11 @@ the default's class, so only that class can match.
 ### Fix
 
 When no member accepts the value and the previous value is a subclasses-disabled
-default, each member is tried again with its own `class_path`. Previous
-`init_args` that the chosen member doesn't accept are discarded, as for a
-`class_path` given explicitly, and compatible ones are kept, as in 4.49 (default
-`C(n=5)` with `{"tag": "b"}` gives `B(n=5)`). Each member is first tried on a copy
-of the previous value, so a member that rejects the value can't discard
-`init_args` that a later member would accept.
+default, the value is parsed again without the previous value, so that the
+members are checked on their own. Since #1038, changing the class discards the
+prior `init_args`, so the `init_args` of the previous member are dropped too
+(default `C(n=5)` with `{"tag": "b"}` gives `B()`, the same as without a
+default).
 
 #921's behaviour is kept: a value accepted by the default's class still updates
 that class.
@@ -52,24 +51,26 @@ that class.
 
 - `test_union_dataclasses_tagged_with_instance_default` uses three tagged
   dataclasses with an instance default. It checks that a partial value keeps the
-  default's class, that a value for another member keeps the compatible
-  `init_args` (also when a member tried before it rejects them), and that
-  incompatible ones are dropped. It fails on main.
+  default's class, that a value for another member gets that member's defaults,
+  and that this also holds when the previous value was given earlier in the
+  command line. It fails on main.
 - The existing tests pass and all changed lines are covered.
-- Also checked by hand against 4.49: values given in a config file,
-  `Optional[A | B]`, a `list[A | B]`, a nested field, and a config followed by a
-  command-line value give the same results, except where #921 intentionally
-  differs (a partial value keeps the default's class). When no member accepts a
-  value, the error is the same as on main.
+- When no member accepts a value, the error is the same as on main.
 
 ### Notes for review
 
+- Design choice: the previous `init_args` are discarded, not kept when the new
+  member accepts them. In 4.49 a compatible one was kept (default `C(n=5)` with
+  `{"tag": "b"}` gave `B(n=5)`). Discarding follows #1038 and avoids a member
+  inheriting values of the default of another one. Keeping compatible ones is
+  possible, but needs a retry per member on a copy of the previous value.
 - The fallback only runs when every member has rejected the value, so values
-  that parse on main are unaffected. The member that accepts is adapted twice,
-  first on the copy and then on the previous value.
+  that parse on main are unaffected.
 - With `subclasses_enabled` for the dataclasses, a dict without `class_path` is
   read as `init_args` for the previous class, so these values still fail. That
   was also the case in 4.49.
+- `v4` does not take this diff as is (surrounding code differs); it would need a
+  manual port, and there the previous `init_args` behaviour of that branch applies.
 
 ## Before submitting
 

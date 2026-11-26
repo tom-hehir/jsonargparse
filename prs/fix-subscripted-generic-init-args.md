@@ -51,7 +51,7 @@ earlier.
 - A subclass that is itself generic (e.g. `class Sub(Model[T])` under
   `Model[int]`) parses with this change, but its type variables are not resolved
   from the annotation's type arguments.
-- The same change applies cleanly to the `v4` branch, and its suite passes.
+- On `v4` the same three-line change applies by hand (the surrounding lines differ because of the `prior_init_args` handling), so it could be backported.
 
 ## Before submitting
 
