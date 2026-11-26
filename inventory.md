@@ -101,7 +101,7 @@ couldn't use. Issues with a clean workaround are down-ranked.
 | # | ID | Why it matters | Sev | Effort | Appetite |
 |---|---|---|---|---|---|
 | 1 | [J01](#j01) | A callable Protocol (or `Callable[..., Class]`) rejects classes whose instances implement it, even as the field's own default. Keeps 3 of 6 projects off 4.52+ and v5; a fourth gave up its return types. 🔧 *Work begun: branch `fix-factory-protocol-instances`, draft PR in `prs/`; commit 1 covers Protocols, a separable commit 2 the `Callable` case.* | 🔴 S1 | small | likely-bug |
-| 2 | [J04](#j04) + [J44](#j44) | Inherited dataclass fields are resolved in the wrong module's namespace: every field of a class silently unvalidated ([J04](#j04)), or a field bound to the wrong class ([J44](#j44)). **Quick win**: a per-base resolution patch is tested and the suite passes. | 🔴 S1 | small | likely-bug |
+| 2 | [J04](#j04) + [J44](#j44) | Inherited dataclass fields are resolved in the wrong module's namespace: every field of a class silently unvalidated ([J04](#j04)), or a field bound to the wrong class ([J44](#j44)). 🔧 *Work begun: branch `fix-inherited-annotation-namespace`, draft PR in `prs/`.* | 🔴 S1 | small | likely-bug |
 | 3 | [J15](#j15) | A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's own `init_args`, so the precise annotation can't be used. One project added per-type marker ABCs instead (15 files, +293 lines, plus a review rule). 🔧 *Work begun: branch `fix-subscripted-generic-init-args`, draft PR in `prs/`.* | 🟠 S2 | small | likely-bug |
 | 4 | [J14](#j14) | A `str \| SomeClass` value naming an existing file is replaced by the file's contents, silently; a multi-GB file is read several times (one incident hung a run). Forced a path-alias convention in 28 files across 4 projects. | 🟠 S2 | small | likely-bug |
 | 5 | [J16](#j16) | A dataclass default with derived attributes (`__post_init__`, `init=False`) is rejected under `Optional`, unions or subclass mode. It forced a registry redesign, and 9 of 223 dataclasses in one project can't be used as defaults. 🔧 *Work begun: branch `fix-default-instance-non-field-attributes`, draft PR in `prs/`.* | 🟠 S2 | small | likely-bug |
@@ -118,7 +118,7 @@ couldn't use. Issues with a clean workaround are down-ranked.
 | 16 | [J43](#j43), [J39](#j39), [J47](#j47) | `parse_object` mutates list/dict inputs; slotted dataclass defaults crash; a failing `default_factory` gives no context. **Quick wins**. | 🟡 S3 | trivial | likely-bug |
 | 17 | [J35](#j35), [J37](#j37), [J33](#j33), [J36](#j36), [J34](#j34) | Stale `--config` in nested parsers; `register_type` serializer applied by union arm (silent data loss if used); quoted PEP 695 aliases; tuple keys; docstring-parser failure dropping parameters. | 🟡 S3 | small | likely-bug |
 
-[J23](#j23) (v5) is in [(c)](#shortlist-c). [J08](#j08), ranked 3rd before, is now [resolved upstream](#resolved). Patches prototyped during this investigation (not yet branches): [J04](#j04) + [J44](#j44) (passes the upstream suite), [J31](#j31), [J39](#j39).
+[J23](#j23) (v5) is in [(c)](#shortlist-c). [J08](#j08), ranked 3rd before, is now [resolved upstream](#resolved). A patch for [J31](#j31) was prototyped during this investigation but has no branch; [J39](#j39)'s fix is part of the [J16](#j16) branch.
 
 <a id="shortlist-b"></a>
 
@@ -278,56 +278,124 @@ Resolved upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21), 
 #### <a id="j04"></a>J04 Dataclass with a non-first base from another module: every field silently unvalidated
 🔴 **S1** · small · likely-bug · hit in 1 of 6 (5 config classes that every pipeline run uses; a scan of 4 projects found no others) · [`J04_mixin_base_unvalidated.py`](repros/J04_mixin_base_unvalidated.py)
 
-- **What happens**: both modules use `from __future__ import annotations`.
-  ```python
-  # base_opts.py                         # run_opts.py
-  from collections.abc import Callable   from base_opts import ModelOpts
-  @dataclass(kw_only=True)               @dataclass(kw_only=True)
-  class ModelOpts:                       class SecondBase(RunOpts, ModelOpts): ...
-      fn: Callable[[int], int] | None = None
-      batch_size: int = 16
-  ```
-  `add_class_arguments(SecondBase)` then accepts `batch_size: "sixteen"`,
-  `split: "banana"`, `seed: [1, 2]`. With the bases swapped, they are rejected.
-  Only a DEBUG log says anything. As a side effect, the `Unvalidated` path walks
-  nested `class_path` values, making these parses 10-40x slower.
-- **Status**: 4.51 ❌ 4.53 ❌ v5 ❌.
-- **Workaround**: none in use (nobody noticed; the project's docs claim these
-  configs are validated). Possible: import the missing names in the subclass's
-  module, or put the other module's base first.
-- **Cause**: `get_global_vars` (`_postponed_annotations.py:263`) copies the
-  subclass's module globals and then merges globals only along the first-base
-  chain (`inspect.getmro(obj)[1]`), so names that only another base's module
-  imports are unresolved, and every field falls back to `Unvalidated`.
-- **Fix**: in `get_types`, first try `typing.get_type_hints(cls, None, localns,
-  include_extras=True)`, which evaluates each base's annotations in that base's
-  module, and fall back to the merged namespace. Tested in a copy of v5: [J04](#j04) and
-  [J44](#j44) fixed; upstream suite 2633 passed, 1 failed (a pre-existing stubs-resolver
-  failure that fails identically unpatched). Merging globals over the whole MRO
-  also fixes [J04](#j04) but not [J44](#j44).
-- **Upstream summary**: A dataclass with two bases, where a non-first base lives
-  in another module that uses `from __future__ import annotations`, loses
-  validation for every field, because `get_global_vars` resolves names only along
-  the first-base chain. Repro above (4.51.0, 4.53.0, 5.0.0rc2). Expected: invalid
-  values rejected. Fix: evaluate each base's annotations in its own module (as
-  `typing.get_type_hints(cls)` does), and file together with [J44](#j44).
+> [!NOTE]
+> **🔧 Work begun**: branch `fix-inherited-annotation-namespace`, which fixes this and [J44](#j44) (draft PR in `prs/`).
+
+**In one sentence:** if a dataclass has two bases and the second one is defined
+in another module, jsonargparse can silently stop validating every field of the
+class.
+
+**Why it happens:**
+
+1. With `from __future__ import annotations`, a field like `batch_size: int`
+   stores its type as the string `"int"`. jsonargparse has to look up the names
+   in that string to get the type back.
+2. It looks names up in two places only: the subclass's own module and its
+   first base's module. It never checks the second base's module.
+3. So when a field of the second base uses a name that only its own module
+   imports, such as `Callable`, the lookup fails.
+4. When the lookup fails, jsonargparse doesn't skip just that field. It turns
+   off validation for the whole class, and any value is accepted, with no
+   warning.
+
+**Example** (both files use `from __future__ import annotations`):
+
+```python
+# base.py
+from collections.abc import Callable
+
+@dataclass
+class B:
+    fn: Callable | None = None
+    batch_size: int = 16
+```
+
+```python
+# main.py: doesn't import Callable
+from base import B
+
+@dataclass
+class A:
+    seed: int = 0
+
+@dataclass
+class C(A, B): ...   # B is second
+```
+
+For `C`, `batch_size: "sixteen"` is accepted. Write `class C(B, A)` instead and
+it's rejected.
+
+**What it costs us:**
+
+- In one project, the 5 stage config classes have no validation at all
+  (`batch_size: "sixteen"`, a bad `Literal`, `freeze_model: "maybe"` all pass),
+  although that project's docs say they are validated.
+- It also makes parsing slower, because the unvalidated path walks through
+  nested `class_path` values. Measured on 4.53.0 with the fix applied by hand,
+  on that project's real run files (2026-11-26):
+
+  | prepare command | without fix | with fix |
+  |---|---|---|
+  | largest run (7 stages), whole command | 7.4 s | 5.6 s |
+  | same run, stage parsing only | 2.3 s CPU | 0.6 s CPU |
+  | a finetune run | 1.4 s CPU | 0.4 s CPU |
+  | an MLP-head run | 0.55 s CPU | 0.65 s CPU |
+
+  The MLP run gets slightly slower because its fields are now actually checked.
+  All four real run files still pass with validation on.
+
+**Status:** 4.51 ❌ 4.53 ❌ v5 ❌.
+
+**Workaround:** import the missing names in the subclass's module too, or put
+the other module's base first.
+
+**The fix** (branch, +18 −7): look up each field's names in the module where
+that field was written, which is what `typing.get_type_hints` already does. The
+maintainer took the same approach for `TypedDict` keys inherited from other
+modules (#936). It also fixes [J44](#j44).
 
 #### <a id="j44"></a>J44 Inherited dataclass field resolved in the base module's namespace
 🟡 **S3** (S2 if the project's affected class has this shape; not confirmed) · small (same fix as [J04](#j04)) · likely-bug · hit in 1 of 6 (led to a "never shadow a library class name" rule) · [`J44_inherited_annotation_namespace.py`](repros/J44_inherited_annotation_namespace.py)
 
-- **What happens**: `checks_a.Checker` and `checks_b.Checker` are different
-  classes. `base_cfg` imports `checks_b.Checker`; `run_cfg` imports
-  `checks_a.Checker` and defines `class Config(BaseCfg): checker: Checker | None`.
-  jsonargparse reads the subclass's own field as `checks_b.Checker` and refuses
-  `class_path: checks_a.Checker`. An earlier "name clash" description was too
-  broad: with no inheritance, aliases and nested classes all work.
-- **Status**: 4.51 ❌ 4.53 ❌ v5 ❌.
-- **Workaround**: import aliases; a naming rule. Low cost, but it constrains
-  naming everywhere.
-- **Cause**: `get_global_vars` updates with the base's globals after the
-  subclass's own, so the base's binding wins for every field.
-- **Fix / summary**: as [J04](#j04) (per-base resolution). File as one issue with two
-  examples.
+> [!NOTE]
+> **🔧 Work begun**: fixed on the [J04](#j04) branch `fix-inherited-annotation-namespace`.
+
+**In one sentence:** the same lookup as [J04](#j04), going wrong the other way:
+if a subclass's module and its base's module import different classes under the
+same name, jsonargparse uses the base module's one, even for fields written in
+the subclass.
+
+**Example** (both files use `from __future__ import annotations`):
+
+```python
+# base.py
+from checks_b import Checker
+
+@dataclass
+class Base:
+    lr: float = 0.1
+```
+
+```python
+# main.py
+from checks_a import Checker   # a different class with the same name
+from base import Base
+
+@dataclass
+class Config(Base):
+    checker: Checker | None = None
+```
+
+`Config.checker` means `checks_a.Checker`, but jsonargparse reads it as
+`checks_b.Checker`, so a valid `class_path: checks_a.Checker` is refused.
+
+**What it costs us:** an import alias, and a rule not to reuse class names
+across modules. Whether the class that prompted the rule has this exact shape
+wasn't checked.
+
+**Status:** 4.51 ❌ 4.53 ❌ v5 ❌.
+
+**The fix:** the [J04](#j04) fix.
 
 #### <a id="j14"></a>J14 A `str` value naming an existing file is read as a config
 🟠 **S2** (silent when hit) · small · likely-bug · incident in 1 of 6 (a predict run hung reading a multi-GB HDF5 during config dumping); a `PathLike | str` alias convention in 28 files across 4 projects · [`J14_str_value_read_as_config_file.py`](repros/J14_str_value_read_as_config_file.py)
