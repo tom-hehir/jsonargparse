@@ -65,6 +65,7 @@ resolved by `get_signature_parameters`, which also covers a hand-written
 | Parsing a list takes time quadratic in its length | 5.0 ([#975](https://github.com/mauvilsa/jsonargparse/pull/975)) |
 | Changing `class_path` writes another union member's defaults into the value (e.g. `eps=1e-5` from `LayerNorm` ending up in an `RMSNorm`) | 4.52.0 ([#968](https://github.com/mauvilsa/jsonargparse/pull/968)) |
 | An error raised in a constructor is reported as "Does not validate against any of the Union subtypes" | main ([#1015](https://github.com/mauvilsa/jsonargparse/pull/1015)) |
+| Changing `class_path` keeps the old class's `init_args`, so an optimizer defaulting to `Adam`, switched to `AdamW`, keeps `weight_decay=0.0` (this was documented behaviour) | main ([#1038](https://github.com/mauvilsa/jsonargparse/pull/1038), merged 2026-11-25): discarded by default, `prior_init_args: keep` to opt back in; v4 branch ([#1037](https://github.com/mauvilsa/jsonargparse/pull/1037), for 4.54): the same option, with keeping deprecated |
 | `class_path` specs inside `object` / `Any` fields get instantiated | off by default in 5.0 ([#969](https://github.com/mauvilsa/jsonargparse/pull/969)); `instantiate_subclass_spec_in_any=False` on 4.x |
 
 ## Still open
@@ -138,13 +139,6 @@ Present on both 4.53.0 and main. None of these is being worked on here.
   fix. The setting also breaks sklearn's `Ridge` (see Still open), so we use a
   `Callable[[Tensor], Any]` annotation instead.
 
-- Changing a `class_path` keeps the old class's `init_args` that the new class
-  accepts. This is documented, but it can change results silently: an optimizer
-  defaulting to `Adam`, switched to `AdamW`, keeps `weight_decay=0.0`. The
-  maintainer has opened fixes: [#1038](https://github.com/mauvilsa/jsonargparse/pull/1038)
-  discards them by default in 5.0, with `prior_init_args: keep` to opt back in,
-  and [#1037](https://github.com/mauvilsa/jsonargparse/pull/1037) adds the option
-  to 4.54 and deprecates keeping.
 - `null` means "unset", so it's accepted for non-Optional fields.
 - A section file (`--trainer b.yaml`) replaces the section instead of merging
   into it; 5.0 adds `__include__` for composing configs.
