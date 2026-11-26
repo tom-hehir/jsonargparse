@@ -674,6 +674,22 @@ def test_importable_instances_in_list(parser):
     assert dump == {"cals": [f"{__name__}.calendar_instance"]}
 
 
+@pytest.mark.parametrize(
+    ["typehint", "container"],
+    [
+        (List[Calendar], lambda spec: [spec]),
+        (Dict[str, Calendar], lambda spec: {"key": spec}),
+    ],
+    ids=["list", "dict"],
+)
+def test_parse_object_does_not_modify_input(parser, typehint, container):
+    parser.add_argument("--cals", type=typehint)
+    value = container({"class_path": "calendar.Calendar", "init_args": {"firstweekday": 3}})
+    expected = deepcopy(value)
+    parser.parse_object({"cals": value})
+    assert value == expected
+
+
 callable_instance = partial(sorted, reverse=True)
 
 

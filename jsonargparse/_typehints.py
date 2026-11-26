@@ -1787,7 +1787,7 @@ def adapt_typehints(
                 val = list_path.read_text().splitlines()
         if isinstance(val, NestedArg) and subtypehints is not None:
             val = (prev_val[:-1] if isinstance(prev_val, list) else []) + [val]
-        elif isinstance(val, Iterable) and not isinstance(val, (list, str)) and type(val) not in mapping_origin_types:
+        elif isinstance(val, Iterable) and not isinstance(val, str) and type(val) not in mapping_origin_types:
             val = list(val)
         elif not isinstance(val, list):
             raise_unexpected_value(f"Expected type: {type_to_str(typehint)}", val)
@@ -1830,7 +1830,9 @@ def adapt_typehints(
                 val = {val.key: val.val}
         elif isinstance(val, (MappingProxyType, ChainMap)):
             val = dict(val)
-        elif not isinstance(val, dict):
+        elif isinstance(val, dict):
+            val = val.copy()
+        else:
             raise_unexpected_value(f"Expected type: {type_to_str(typehint)}", val)
         if typehint_origin is Counter:
             # a Counter is subscripted only with the type of its keys, and its values are always int

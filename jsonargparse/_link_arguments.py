@@ -475,7 +475,7 @@ class ActionLink(Action):
         if ActionTypeHint.is_subclass_typehint(target_action, all_subtypes=False, also_lists=True):
             if target_key == target_action.dest:
                 if action.apply_on == "parse":  # instantiate links are checked by validate_value
-                    action._check_type(value)
+                    value = action._check_type(value)
             else:
                 assert isinstance(target_action.dest, str)
                 parent = cfg.get(target_action.dest)

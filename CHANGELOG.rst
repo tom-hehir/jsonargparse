@@ -273,6 +273,9 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- ``parse_object`` replacing the ``class_path`` dicts inside the lists and dicts
+  of its input with namespaces, instead of leaving the input unmodified (`#????
+  <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^
