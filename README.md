@@ -91,11 +91,21 @@ documented behaviour that was awkward in these projects, not bugs.
 
 ## Fixed upstream
 
-| Issue | Fixed in |
-| ----- | -------- |
-| Parsing nested subclass values scales exponentially with the depth of nesting | main ([#1036](https://github.com/mauvilsa/jsonargparse/pull/1036), merged 2026-11-23) |
-| Parsing a list takes time quadratic in its length | 5.0 ([#975](https://github.com/mauvilsa/jsonargparse/pull/975)) |
-| Changing `class_path` writes another union member's defaults into the value (e.g. `eps=1e-5` from `LayerNorm` ending up in an `RMSNorm`) | 4.52.0 ([#968](https://github.com/mauvilsa/jsonargparse/pull/968)) |
-| An error raised in a constructor is reported as "Does not validate against any of the Union subtypes" | main ([#1015](https://github.com/mauvilsa/jsonargparse/pull/1015)) |
-| Changing `class_path` keeps the old class's `init_args`, so an optimizer defaulting to `Adam`, switched to `AdamW`, keeps `weight_decay=0.0` (this was documented behaviour) | main ([#1038](https://github.com/mauvilsa/jsonargparse/pull/1038), merged 2026-11-25): discarded by default, `prior_init_args: keep` to opt back in; v4 branch ([#1037](https://github.com/mauvilsa/jsonargparse/pull/1037), for 4.54): the same option, with keeping deprecated |
-| `class_path` specs inside `object` / `Any` fields get instantiated | off by default in 5.0 ([#969](https://github.com/mauvilsa/jsonargparse/pull/969)); `instantiate_subclass_spec_in_any=False` on 4.x |
+| ID | Problem | Fixed in |
+|---|---|---|
+| [J21](inventory.md#j21) | Changing `class_path` kept the old class's `init_args`, so an optimizer switched from `Adam` to `AdamW` kept `weight_decay=0.0` (documented behaviour until then) | main ([#1038](https://github.com/mauvilsa/jsonargparse/pull/1038)): discarded by default, `prior_init_args: keep` to opt back in; v4 branch for 4.54 ([#1037](https://github.com/mauvilsa/jsonargparse/pull/1037)): the same option, with keeping deprecated |
+| [J08](inventory.md#j08) | Parsing nested `class_path` values took time exponential in the nesting depth | main ([#1036](https://github.com/mauvilsa/jsonargparse/pull/1036)) |
+| [J28](inventory.md#j28) | An error raised in a constructor was reported as "Does not validate against any of the Union subtypes" | 5.0 ([#1015](https://github.com/mauvilsa/jsonargparse/pull/1015)) |
+| [J29](inventory.md#j29) | Parsing a list took time quadratic in its length | 5.0 ([#975](https://github.com/mauvilsa/jsonargparse/pull/975)) |
+| [J03](inventory.md#j03) | Changing `class_path` wrote another union member's defaults into the value (e.g. `eps=1e-5` from `LayerNorm` in an `RMSNorm`) | 4.52.0 ([#968](https://github.com/mauvilsa/jsonargparse/pull/968)) |
+| [J30](inventory.md#j30) (partly) | `class_path` specs inside `object` / `Any` fields were instantiated | 5.0, off by default ([#969](https://github.com/mauvilsa/jsonargparse/pull/969)); `instantiate_subclass_spec_in_any=False` on 4.x |
+
+## Files
+
+- [`inventory.md`](inventory.md): every issue in detail, including the design
+  requests and the v5 feedback.
+- [`FIX-STATUS.md`](FIX-STATUS.md): working notes on the fix branches: open
+  decisions, questions for the maintainer, filing order.
+- [`issues/`](issues/) and [`prs/`](prs/): draft issue and PR texts.
+- [`repros/`](repros/): one standalone script per issue, with results per
+  version.

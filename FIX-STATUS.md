@@ -1,59 +1,33 @@
-# Fix work for shortlist (a): status
+# Fix branches: working notes
 
-Branches pushed to the fork 2026-11-26; no issues or PRs opened. Every branch is
-cut from upstream `main` at 3b30c14 and lives in its own worktree under
-`.claude/worktrees/<branch>`. Diff links go to GitHub, against upstream `main`;
-the two branches with two commits also link to each commit. PR drafts are in
-[`prs/`](prs/), issue drafts in [`issues/`](issues/). IDs link to
+What to decide before filing each fix. The [README](README.md) has the order,
+a one-line description, line counts and diff links for each; this file has the
+rest. Draft texts are in [`prs/`](prs/) and [`issues/`](issues/); IDs link to
 [`inventory.md`](inventory.md).
 
-**Priority** (your ranking, 2026-11-26; the same order as the public
-[README](README.md)): 🔴 first round, top five · 🟠 first round, the rest ·
-🟡 fixed locally, not planned for now · ⚪ superseded.
+- **Branches**: pushed to the fork on 2026-11-26, each cut from upstream `main`
+  at 3b30c14, each in its own worktree under `.claude/worktrees/<branch>`.
+  Nothing is filed upstream yet.
+- **Checks on every branch**: the new tests fail without the fix and pass with
+  it; the full upstream suite passes on Python 3.12 and 3.14, apart from 2
+  argcomplete tests that also fail on untouched `main` here; changed lines are
+  covered; ruff is clean; mypy reports nothing new.
+- **Before filing**: the PR template asks "If you used a coding agent, did you
+  fully understand and validate all generated code". That box is left unticked
+  in every draft, for you to tick after your own review.
+- **PR or issue**: the bug template asks for a PR directly when the bug and its
+  fix are understood, so PR is the default. Issue first is for behaviour the
+  maintainer may consider intended, or that needs his design choice.
 
-## Overview
-
-In priority order. **Sev** is the inventory severity. Line counts are added /
-removed against upstream `main`: **Code** is the library (`jsonargparse/`),
-**Tests** includes test helper modules and `conftest.py`, **Docs** is
-`DOCUMENTATION.rst`, **CL** is `CHANGELOG.rst`.
-
-| | ID | What it fixes | Sev | Recommendation | Code | Tests | Docs | CL | Diff |
-|---|---|---|---|---|---|---|---|---|---|
-| 🔴 | [J01](inventory.md#j01) | A callable Protocol (or `Callable[..., Class]`) rejects classes whose instances implement it | S1 | **PR** (commit 1), **issue first** (commit 2) | +23 −4 | +49 | — | +7 | [all](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/d13b66eed01b61708c81c883c473d213f0d27fa9) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/4d05a3e431a043528962dbdb8f858598e4f35164) |
-| 🔴 | [J23](inventory.md#j23) | v5: a required `X \| None` parameter can't be given `null` | S2 | **Issue only** | — | — | — | — | [issue draft](issues/required-nullable-null.md) |
-| 🔴 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | Dataclass defaults with derived attributes (`__post_init__`, `init=False`), or with `slots=True`, are rejected | S2 | **PR** | +8 −1 | +45 | — | +8 | [all](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/59bdc3dc0492680eae30e45116dc19ef83bfd72d) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/de6966ad159b48415afed833b591d10029906ea6) |
-| 🔴 | [J24](inventory.md#j24) | A Protocol field's class default, nested in a union or dataclass, is saved without its hyperparameters | S2 | **PR**, design point in text | +3 −1 | +27 −1 | — | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-class-default-dump) |
-| 🔴 | [J15](inventory.md#j15) | A subscripted generic (`Model[int]`) rejects a subclass's own `init_args` | S2 | **PR** | +3 −4 | +27 | — | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args) |
-| 🟠 | [J14](inventory.md#j14) | A `str` value naming an existing file is replaced by the file's contents | S2 | **Issue first** (prototype) | +2 | +32 | — | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-str-value-read-as-config) · [issue draft](issues/str-value-read-as-config.md) |
-| 🟠 | [J04](inventory.md#j04) + [J44](inventory.md#j44) | A dataclass with a base from another module loses validation of every field, or binds a field to the wrong class | S1 | **PR** | +18 −7 | +40 −1 | — | +5 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-inherited-annotation-namespace) |
-| 🟠 | [J13](inventory.md#j13) | A command-line `null` for `os.PathLike \| None` becomes the string `"None"` | S2 | **PR** | +8 −1 | +8 | — | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-pathlike-coercion) |
-| 🟠 | [J26](inventory.md#j26) | A tagged union with an instance default rejects values for another member | S2 | **PR with a question**, or issue first | +5 −1 | +36 −1 | — | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default) |
-| 🟡 | [J27](inventory.md#j27) | One unevaluable annotation silently disables validation of the whole class | S2 | **PR**, after J04 | +16 −1 | +27 | — | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-unevaluable-annotation-fallback) |
-| 🟡 | [J09](inventory.md#j09) | Lists, tuples and dicts of dataclass defaults dump as unreloadable text | S2 | **PR** | +13 −1 | +65 | — | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-dump-container-defaults) |
-| 🟡 | [J43](inventory.md#j43) | `parse_object` modifies the caller's lists and dicts in place | S3 | **PR** | +5 −3 | +16 | — | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-parse-object-mutates-input) |
-| 🟡 | [J10](inventory.md#j10) | Calling `set_parsing_settings(subclasses_enabled=[...])` twice raises | S2 | **PR** | +5 −2 | +9 | +4 −4 | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-parsing-settings-idempotent) |
-| 🟡 | [J12](inventory.md#j12) | Two error messages that point away from the cause | S2 | **Issue only** (or a #999 comment) | — | — | — | — | [issue draft](issues/error-message-wording.md) |
-| 🟡 | [J17](inventory.md#j17) | Unhelpful error for a Protocol whose members all start with `_` | S2 | **Issue first** | +8 −1 | +15 | — | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-private-members-message) |
-| 🟡 | [J47](inventory.md#j47) | A failing `default_factory` raises with no hint of which class or field | S3 | **Small PR** or issue first | +4 −1 | +21 | — | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-factory-error-context) |
-| ⚪ | [J39](inventory.md#j39) | A slotted dataclass default crashes (now in J16's commit 2) | S3 | Superseded | +5 −1 | +15 | — | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-slotted-dataclass-default) |
-
-The library changes are small: 2 to 23 added lines each, about 120 in total
-across the 14 branches to be filed. Most of each diff is tests.
-
-**Checks run on every branch**: the new tests fail without the fix and pass with
-it; the full upstream suite passes on Python 3.12 and 3.14 (apart from 2
-argcomplete tests that also fail on untouched main in this environment);
-changed lines are covered; ruff is clean and mypy reports no new errors.
+**Priority** (README order): 🔴 first round, top five · 🟠 first round, the
+rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
 
 ## Decisions and flags for each branch
 
-Same order as above.
-
-| | ID | Branch | Decisions or flags for you | v4 |
+| | ID | Branch (diff on GitHub) | Decisions or flags | Port to v4 |
 |---|---|---|---|---|
-| 🔴 | [J01](inventory.md#j01) | [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) | Commit 2 (`Callable`) relaxes a check added on purpose in 4.52 (#959) and checks `Callable` by return type only, as for functions. It can be dropped without affecting commit 1 | manual port |
-| 🔴 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | [`fix-default-instance-non-field-attributes`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) | Commit 2 reads `__init__` parameters with `getattr`, which also fixes slotted dataclasses (J39) on the same lines. Can be split if wanted | manual |
+| 🔴 | [J01](inventory.md#j01) | [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/d13b66eed01b61708c81c883c473d213f0d27fa9) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/4d05a3e431a043528962dbdb8f858598e4f35164) | Commit 2 (`Callable`) relaxes a check added on purpose in 4.52 (#959) and checks `Callable` by return type only, as for functions. It can be dropped without affecting commit 1 | manual port |
+| 🔴 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | [`fix-default-instance-non-field-attributes`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/59bdc3dc0492680eae30e45116dc19ef83bfd72d) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/de6966ad159b48415afed833b591d10029906ea6) | Commit 2 reads `__init__` parameters with `getattr`, which also fixes slotted dataclasses (J39) on the same lines. Can be split if wanted | manual |
 | 🔴 | [J24](inventory.md#j24) | [`fix-protocol-class-default-dump`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-class-default-dump) | Nested class defaults now dump as `class_path` + `init_args`, like a plain field already does; the alternative (bare path) is offered | source applies |
 | 🔴 | [J15](inventory.md#j15) | [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args) | none | manual (3 lines) |
 | 🟠 | [J14](inventory.md#j14) | [`fix-str-value-read-as-config`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-str-value-read-as-config) | Precedent: the maintainer fixed the same symptom for `os.PathLike` unions (#516/#518). The prototype keeps a path when the file is plain text; it doesn't remove the repeated reads of large files | manual |
@@ -68,27 +42,21 @@ Same order as above.
 | 🟡 | [J47](inventory.md#j47) | [`fix-default-factory-error-context`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-factory-error-context) | Re-raises as `ValueError` (same wording as the existing wrapper nearby), so the exception type changes; `add_note` isn't used in the codebase | applies |
 | ⚪ | [J39](inventory.md#j39) | [`fix-slotted-dataclass-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-slotted-dataclass-default) | Superseded by J16's commit 2; keep only if J16 isn't filed | manual |
 
-**Upstream's guidance**: the bug template asks for a PR directly when the bug
-and its fix are understood, so the default is "PR". "Issue first" is kept for
-things the maintainer may consider intended, or that need his design choice.
+J23 (issue only) and J12 (issue only, not planned) have no branch.
 
-Before filing anything: the PR template asks "If you used a coding agent, did
-you fully understand and validate all generated code". That box is left
-unticked in every draft for you to tick after your own review.
+## Questions to raise inside the PRs or issues
 
-## Questions to raise inside PRs or issues (not separate items)
-
-- J01 commit 2: return-type-only check for `Callable`, or a stricter signature check?
+- J01 commit 2: check `Callable` by return type only, or a stricter signature check?
 - J10: a public getter for parsing settings, and a scoped setting API (follow-ups).
 - J13: should `os.PathLike` reject non-strings?
 - J27: warn when a class or field falls back to `Unvalidated`?
 
-## Filing order (suggested)
+## Filing order
 
-Two or three at a time, in the order above: J23 (with the comment in the v5
-thread, #999) and J01 first, then J16, J24 and J15, then the J14 issue, J04 +
-J44, J13 and J26. If J27 is ever sent, file it after J04 (same function). The
-🟡 items stay local for now.
+Two or three at a time, in README order: J23 (with a comment in the v5 thread,
+#999) and J01 first; then J16, J24 and J15; then the J14 issue, J04 + J44, J13
+and J26. If J27 is ever sent, file it after J04, since both change the same
+function. The 🟡 items stay local for now.
 
 ## Not worked on
 
