@@ -2109,7 +2109,7 @@ def adapt_typehints(
                 msg = "implement protocol" if is_protocol(typehint) else "correspond to a subclass of"
                 raise_class_path_error(
                     f"Import path {val['class_path']} does not {msg} {typehint.__name__}"
-                    f"{known_subclasses_suffix(typehint)}"
+                    f"{protocol_without_members_suffix(typehint)}{known_subclasses_suffix(typehint)}"
                 )
             val["class_path"] = class_path
             val = adapt_class_type(
@@ -2331,6 +2331,13 @@ def get_protocol_members(protocol) -> list[str]:
             continue
         members.append(name)
     return members
+
+
+def protocol_without_members_suffix(typehint) -> str:
+    """Line for an error, explaining why a protocol without checkable members is implemented by nothing."""
+    if is_protocol(typehint) and not get_protocol_members(get_protocol_origin(typehint)):
+        return "\nThe protocol has no public members to check, since names starting with '_' are not checked."
+    return ""
 
 
 def substitute_protocol_type_vars(proto_params, proto_return, type_var_map):

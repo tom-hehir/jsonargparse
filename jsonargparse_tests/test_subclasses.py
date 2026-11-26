@@ -2359,6 +2359,21 @@ def test_implements_protocol(expected, value):
     assert implements_protocol(value, Interface) is expected
 
 
+class PrivateMembersInterface(Protocol):
+    def _predict(self, items: List[float]) -> List[float]: ...
+
+
+class ImplementsPrivateMembersInterface:
+    def _predict(self, items: List[float]) -> List[float]:
+        return items  # pragma: no cover
+
+
+def test_parse_protocol_only_private_members_error(parser):
+    parser.add_argument("--cls", type=PrivateMembersInterface)
+    with pytest.raises(ArgumentError, match="has no public members to check"):
+        parser.parse_args([f"--cls={__name__}.ImplementsPrivateMembersInterface"])
+
+
 # protocol method signature matching tests
 
 

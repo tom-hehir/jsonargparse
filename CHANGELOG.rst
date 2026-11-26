@@ -273,6 +273,9 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- The error for a class that doesn't implement a ``Protocol`` whose members all
+  start with an underscore, which are ignored so nothing implements it, now
+  explains this (`#???? <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^
