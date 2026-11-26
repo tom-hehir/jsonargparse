@@ -496,7 +496,10 @@ class SignatureArguments(LoggerProperty):
             self.logger.debug(skip_message + "Name starts with '_' and the parameter is not required.")
             return
         if is_factory_class(default):
-            default = param.parent.__dataclass_fields__[name].default_factory()
+            try:
+                default = param.parent.__dataclass_fields__[name].default_factory()
+            except Exception as ex:
+                raise ValueError(f'Unable to add parameter "{name}" from "{src}": default_factory failed: {ex}') from ex
         if annotation == inspect_empty:
             if fail_untyped == "all":
                 raise ValueError(

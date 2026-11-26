@@ -360,6 +360,27 @@ def test_dataclass_field_default_factory(parser):
     assert {"a": 1.2, "b": 3.4} == cfg.a2
 
 
+@dataclasses.dataclass
+class DataRequiredPostInit:
+    p1: Optional[str] = None
+
+    def __post_init__(self):
+        if self.p1 is None:
+            raise ValueError("p1 is required")
+
+
+@dataclasses.dataclass
+class DataFieldFactoryFailing:
+    nested: DataRequiredPostInit = dataclasses.field(default_factory=DataRequiredPostInit)
+
+
+def test_dataclass_field_default_factory_error_context(parser):
+    with pytest.raises(ValueError) as ctx:
+        parser.add_class_arguments(DataFieldFactoryFailing)
+    ctx.match('Unable to add parameter "nested" from ".*DataFieldFactoryFailing.__init__"')
+    ctx.match("p1 is required")
+
+
 class UntypedClass:
     def __init__(self, c1):
         self.c1 = c1
