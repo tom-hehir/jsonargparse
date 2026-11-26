@@ -271,6 +271,20 @@ def get_global_vars(obj: Any, logger: logging.Logger | None) -> dict:
     return global_vars
 
 
+def get_class_types_individually(cls: type, global_vars: dict) -> dict:
+    """Returns the resolved annotations of a class, one at a time, with the exception for each one that fails."""
+    types: dict = {}
+    for base in reversed(inspect.getmro(cls)):
+        for name, annotation in inspect.get_annotations(base).items():
+            # A holder class is used so that only this annotation is resolved
+            holder = type("holder", (), {"__annotations__": {name: annotation}})
+            try:
+                types[name] = get_type_hints(holder, global_vars, vars(base), include_extras=True)[name]
+            except Exception as ex:
+                types[name] = ex
+    return types
+
+
 def is_type_like(value: Any) -> bool:
     """Whether a value could be used as a type annotation."""
     from ._optionals import is_alias_type
@@ -352,7 +366,8 @@ def get_types(obj: Any, logger: logging.Logger | None = None, parent: Any = None
     try:
         types = get_type_hints(obj, global_vars, local_vars, include_extras=True)
     except Exception as ex1:
-        types = ex1
+        # A class falls back to resolving its annotations one by one, so that only the failing ones are left out
+        types = get_class_types_individually(obj, global_vars) if inspect.isclass(obj) else ex1
     if not isinstance(types, Exception) and all(not type_requires_eval(t) for t in types.values()):
         return types
 

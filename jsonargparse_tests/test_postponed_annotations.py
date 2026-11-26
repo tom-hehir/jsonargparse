@@ -891,6 +891,33 @@ def test_get_params_dataclass_inherit_different_module():
     assert "PositiveInt" in str(params[1].annotation)
 
 
+class Weights:
+    pass
+
+
+@dataclasses.dataclass
+class DataUnevaluableBase:
+    lr: float = 0.1
+    weights: "Weights" | None = None  # type: ignore[operator]  # a quoted name in a union can't be evaluated
+
+
+@dataclasses.dataclass
+class DataUnevaluableField(DataUnevaluableBase):
+    steps: int = 1
+
+
+def test_dataclass_unevaluable_annotation_only_affects_its_field(parser, logger):
+    parser.logger = logger
+    with capture_logs(logger) as logs:
+        parser.add_class_arguments(DataUnevaluableField, "data")
+    assert "Unable to evaluate type of weights" in logs.getvalue()
+    cfg = parser.parse_args(["--data.lr=0.5", "--data.steps=2", '--data.weights={"any": "value"}'])
+    assert cfg.data == Namespace(lr=0.5, weights={"any": "value"}, steps=2)
+    for invalid in ["--data.lr=abc", "--data.steps=abc"]:
+        with pytest.raises(ArgumentError):
+            parser.parse_args([invalid])
+
+
 def test_get_global_vars_ignores_type_checking_source_errors(monkeypatch):
     monkeypatch.setattr(
         postponed_annotations.inspect, "getsource", lambda _: (_ for _ in ()).throw(RuntimeError("boom"))
