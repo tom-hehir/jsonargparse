@@ -785,6 +785,8 @@ class ActionTypeHint(Action):
                 )
                 if list_file:  # a plain text list of paths, read when adapting, relative to the current directory
                     val, config_path = orig_val, None
+                elif config_path is not None and isinstance(val, str) and self._is_valid_string(orig_val):
+                    val, config_path = orig_val, None  # a file with plain text is not a config, the path is the value
                 val = with_prior_init_args(val, prior_init_args)
                 path_meta = val.pop("__path__", None) if isinstance(val, dict) else None
                 # a single sub-config appended to a list becomes one more list item

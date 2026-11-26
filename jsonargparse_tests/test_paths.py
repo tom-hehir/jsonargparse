@@ -1415,6 +1415,38 @@ def test_sub_configs_union_subclass_and_pathlike(parser, tmp_cwd):
     assert cfg.data.path == str(data_path)
 
 
+@pytest.mark.parametrize("typehint", [str, Optional[str], Union[str, ItemData]])
+def test_sub_configs_str_value_naming_text_file(parser, tmp_cwd, typehint):
+    pathlib.Path("data.csv").write_text("a,b\n1,2\n")
+
+    parser.add_argument("--data", type=typehint, sub_configs=True)
+
+    cfg = parser.parse_args(["--data=data.csv"])
+    assert cfg.data == "data.csv"
+    assert json_or_yaml_load(parser.dump(cfg)) == {"data": "data.csv"}
+
+
+class DataUnionStrDataclass:
+    def __init__(self, data: Union[str, ItemData] = ""):
+        pass  # pragma: no cover
+
+
+def test_sub_configs_union_str_and_dataclass_text_file_from_signature(parser, tmp_cwd):
+    pathlib.Path("data.csv").write_text("a,b\n1,2\n")
+
+    parser.add_class_arguments(DataUnionStrDataclass, "main", sub_configs=True)
+
+    cfg = parser.parse_args(["--main.data=data.csv"])
+    assert cfg.main.data == "data.csv"
+
+
+def test_sub_configs_union_str_and_dataclass_config_file(parser, data_subconfig):
+    parser.add_class_arguments(DataUnionStrDataclass, "main", sub_configs=True)
+
+    cfg = parser.parse_args(["--main.data=data.yaml"])
+    assert_data_item(cfg.main.data)
+
+
 def test_union_path_or_dict(parser, tmp_cwd):
     arg_path = pathlib.Path("arg.json")
     arg_path.touch()

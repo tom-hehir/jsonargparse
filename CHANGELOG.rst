@@ -273,6 +273,10 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- A ``str`` value that names a file with plain text, for a type that accepts
+  ``str`` and is added with ``sub_configs=True``, e.g. ``str | SomeClass``,
+  being replaced by the content of the file (`#????
+  <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^
