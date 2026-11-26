@@ -1092,3 +1092,19 @@ def test_pydantic_extra_allow_in_subcommand(parser, subparser):
     assert parser.instantiate(cfg).fit.model.p3 == "y"
     with pytest.raises(ArgumentError, match="Subcommand 'fit' does not accept option 'p3'"):
         parser.parse_object({"fit": {"p3": "y"}})
+
+
+if pydantic_support:
+
+    class PydanticContained(pydantic.BaseModel):
+        p1: str = "x"
+
+    class PydanticContainerDefault(pydantic.BaseModel):
+        items: List[PydanticContained] = pydantic.Field(default_factory=lambda: [PydanticContained(p1="a")])
+
+
+def test_pydantic_instances_in_container_default_dump(parser):
+    parser.add_class_arguments(PydanticContainerDefault, "model")
+    dump = parser.dump(parser.get_defaults())
+    assert json_or_yaml_load(dump) == {"model": {"items": [{"p1": "a"}]}}
+    assert parser.dump(parser.parse_string(dump)) == dump

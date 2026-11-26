@@ -360,6 +360,55 @@ def test_dataclass_field_default_factory(parser):
     assert {"a": 1.2, "b": 3.4} == cfg.a2
 
 
+@dataclasses.dataclass
+class DataContained:
+    p1: str = "x"
+
+
+@dataclasses.dataclass
+class DataContainerDefaults:
+    a1: List[DataContained] = dataclasses.field(default_factory=lambda: [DataContained("a")])
+    a2: Tuple[DataContained, ...] = dataclasses.field(default_factory=lambda: (DataContained("b"),))
+    a3: Dict[str, DataContained] = dataclasses.field(default_factory=lambda: {"k": DataContained("c")})
+    a4: dict = dataclasses.field(default_factory=lambda: {"k": [DataContained("d")]})
+
+
+def test_dataclass_instances_in_container_defaults_dump(parser):
+    parser.add_class_arguments(DataContainerDefaults, "data")
+    cfg = parser.get_defaults()
+    dump = parser.dump(cfg)
+    assert json_or_yaml_load(dump)["data"] == {
+        "a1": [{"p1": "a"}],
+        "a2": [{"p1": "b"}],
+        "a3": {"k": {"p1": "c"}},
+        "a4": {"k": [{"p1": "d"}]},
+    }
+    assert parser.dump(parser.parse_string(dump)) == dump
+
+
+class ContainedBase(abc.ABC):
+    pass
+
+
+@dataclasses.dataclass
+class ContainedImpl(ContainedBase):
+    p1: int = 1
+
+
+@dataclasses.dataclass
+class DataContainedSubclasses:
+    items: List[ContainedBase] = dataclasses.field(default_factory=lambda: [ContainedImpl(2)])
+
+
+def test_dataclass_subclass_instances_in_container_default_dump(parser):
+    parser.add_class_arguments(DataContainedSubclasses, "data")
+    cfg = parser.get_defaults()
+    dump = parser.dump(cfg)
+    expected = [{"class_path": f"{__name__}.ContainedImpl", "init_args": {"p1": 2}}]
+    assert json_or_yaml_load(dump)["data"]["items"] == expected
+    assert parser.dump(parser.parse_string(dump)) == dump
+
+
 class UntypedClass:
     def __init__(self, c1):
         self.c1 = c1

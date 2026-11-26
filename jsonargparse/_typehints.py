@@ -928,7 +928,7 @@ class ActionTypeHint(Action):
 
 
 def normalize_default_value(action, default):
-    from ._signatures import convert_to_dict, is_convertible_to_dict
+    from ._signatures import convert_instances_to_dict, convert_to_dict, is_convertible_to_dict
 
     is_subclass_type = action.is_subclass_typehint(action._typehint, all_subtypes=False)
     if isinstance(default, _LazyInitBaseClass):
@@ -938,6 +938,8 @@ def normalize_default_value(action, default):
     elif is_subclass_type and isinstance(default, dict) and "class_path" in default:
         default = subclass_spec_as_namespace(default)
         default.class_path = normalize_import_path(default.class_path, action._typehint)
+    elif type(default) in {list, tuple, dict}:
+        default = convert_instances_to_dict(default)
     elif ActionTypeHint.is_return_subclass_typehint(action._typehint) and inspect.isclass(default):
         default = {"class_path": get_import_path(default)}
     elif is_subclass_type and not allow_default_instance.get():

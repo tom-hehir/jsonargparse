@@ -803,6 +803,16 @@ def is_convertible_to_dict(value):
     return dataclasses.is_dataclass(value) or is_attrs_class(value) or is_pydantic_model(value)
 
 
+def convert_instances_to_dict(value: Any) -> Any:
+    if is_convertible_to_dict(type(value)):
+        return convert_to_dict(value)
+    if type(value) is dict:
+        return {k: convert_instances_to_dict(v) for k, v in value.items()}
+    if type(value) in {list, tuple}:
+        return type(value)(convert_instances_to_dict(v) for v in value)
+    return value
+
+
 def convert_to_dict(value) -> dict:
     if attrs_support:
         import attrs

@@ -273,6 +273,9 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- Lists, tuples and dicts of dataclass, attrs or pydantic instances used as
+  default values being dumped as ``Unable to serialize instance`` text that
+  can't be parsed back (`#???? <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^
