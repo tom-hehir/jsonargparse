@@ -62,6 +62,14 @@ def test_os_pathlike_subscripted(parser, file_r):
     assert file_r == parser.parse_args([f"--path={file_r}"]).path
 
 
+@pytest.mark.parametrize("pathlike_type", [Optional[os.PathLike], Optional[Union[os.PathLike, str]]])
+def test_optional_os_pathlike_null(parser, pathlike_type):
+    parser.add_argument("--path", type=pathlike_type)
+    assert parser.parse_args(["--path=null"]).path is None
+    assert parser.parse_string("path: null").path is None
+    assert parser.parse_args(["--path=dir/file"]).path == "dir/file"
+
+
 # base path tests
 
 

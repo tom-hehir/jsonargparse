@@ -604,7 +604,14 @@ Path_dw = path_type("dw", docstring="path to a directory that exists and is writ
 Path_dc = path_type("dc", docstring="path to a directory that can be created if it does not exist")
 Path_drw = path_type("drw", docstring="path to a directory that exists and is readable and writable")
 
-register_type(os.PathLike, str, str)
+
+def pathlike_deserializer(value) -> str:
+    if value is None:
+        raise TypeError("None is not a path")
+    return str(value)
+
+
+register_type(os.PathLike, str, pathlike_deserializer)
 register_type(complex)
 register_type_on_first_use("decimal.Decimal", float)
 register_type_on_first_use("uuid.UUID")
