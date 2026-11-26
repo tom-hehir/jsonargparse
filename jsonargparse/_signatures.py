@@ -811,11 +811,13 @@ def convert_to_dict(value) -> dict:
             return attrs.asdict(value)
 
     value_type = type(value)
-    attributes = {**vars(value), **get_pydantic_extra_fields(value)}
     if dataclasses.is_dataclass(value_type):
-        # only __init__ parameters, not e.g. init=False fields or attributes set in __post_init__
-        init_params = {p.name for p in get_signature_parameters(value_type)}
-        attributes = {k: v for k, v in attributes.items() if k in init_params}
+        # only __init__ parameters, not e.g. init=False fields or attributes set in __post_init__,
+        # and with getattr, since a dataclass with slots has no __dict__
+        params = get_signature_parameters(value_type)
+        attributes = {p.name: getattr(value, p.name) for p in params if hasattr(value, p.name)}
+    else:
+        attributes = {**vars(value), **get_pydantic_extra_fields(value)}
     init_args = {}
     for name, attr in attributes.items():
         attr_type = type(attr)

@@ -278,6 +278,9 @@ Fixed
   ``init=False`` fields or attributes set in ``__post_init__``, with an error
   like ``Option '_cache' is not accepted`` (`#????
   <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
+- A dataclass instance with ``slots=True`` as default failing with ``vars()
+  argument must have __dict__ attribute`` (`#????
+  <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^
