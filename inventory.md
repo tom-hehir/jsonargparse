@@ -16,7 +16,7 @@ has the detail.
   code, a pin or an incident caused by the issue.
 
 > [!IMPORTANT]
-> **52 open issues** (🔴 5 S1 · 🟠 18 S2 · 🟡 18 S3 · ⚪ 11 S4), **5 fixed
+> **53 open issues** (🔴 5 S1 · 🟠 19 S2 · 🟡 18 S3 · ⚪ 11 S4), **5 fixed
 > upstream** (🟢), and one found not to be a jsonargparse issue.
 
 <a id="contents"></a>
@@ -89,13 +89,11 @@ For the release-candidate thread (mauvilsa/jsonargparse#999). Every v5-only
 test failure in our five suites traced to [J01](#j01), [J07](#j07), [J23](#j23),
 [J30](#j30)'s sklearn case, or [J45](#j45)'s renames; nothing else broke.
 
-1. **[J23](#j23): a required `X | None` parameter can't be given `null`.** The
-   top v5 item, and time-sensitive. It caused 7 and 14 test failures in two
-   projects. `unset_sentinel=True` makes it work, but flipping that default
-   fails 111 upstream tests, so there is no one-line fix. Ask: decide how "not
-   given" is represented, and meanwhile mention `unset_sentinel=True` in the
-   deprecation message and the migration guide. Issue draft:
-   [`issues/required-nullable-null.md`](issues/required-nullable-null.md).
+1. **[J23](#j23): a required `X | None` parameter can't take `null` with the
+   default settings.** Intended (#678, #969); `unset_sentinel=True` is the way
+   to allow it, and in our tests it works once [J59](#j59) and [J13](#j13) are
+   fixed. Ask: say so in the migration guide's "become required" entry and in
+   the v4 deprecation message. Docs only, not an issue.
 2. **[J07](#j07): LightningCLI 2.6.x doesn't run on v5.** It calls APIs v5
    removed. Lightning caps `jsonargparse<5` only in its extras, so a fresh
    install of a project without its own `<5` picks v5 and breaks, while
@@ -174,11 +172,12 @@ Sorted by severity, then ID. 🔧 marks the ones with a fix branch.
 | [J18](#j18) | C builtins rejected for `Callable[[Tensor], Tensor]`; stubs setting read once | intended-but-awkward | 🟠 S2 | trivial | intended / likely-bug | 4.51 ✅ 4.53 ❌ v5 ❌ | [`J18_c_builtin_callable.py`](repros/J18_c_builtin_callable.py) |
 | [J19](#j19) | No placeholder interpolation before validation | missing-feature | 🟠 S2 | medium | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J19_placeholder_in_typed_field.py`](repros/J19_placeholder_in_typed_field.py) |
 | [J20](#j20) | No deferred instantiation (validate a `class_path` now, build later) | missing-feature | 🟠 S2 | medium | debatable | ? (feature) | — |
-| [J23](#j23) | v5: a required `X \| None` can't be given `null` | v5-migration | 🟠 S2 | medium | likely-bug | 4.51 ✅ 4.53 ✅ v5 ❌ | [`J23_required_optional_null.py`](repros/J23_required_optional_null.py) |
+| [J23](#j23) | v5: a required `X \| None` can't be given `null` unless `unset_sentinel=True` | v5-migration | 🟠 S2 | n/a | intended | 4.51 ✅ 4.53 ✅ v5 ❌ | [`J23_required_optional_null.py`](repros/J23_required_optional_null.py) |
 | [J24](#j24) | Protocol-typed class default inside a dataclass default or union dumps as a bare path; not a fixpoint 🔧 | bug | 🟠 S2 | small | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J24_protocol_class_default_dump.py`](repros/J24_protocol_class_default_dump.py) |
 | [J25](#j25) | A section file given to a parent group resets nullable sections | intended-but-awkward | 🟠 S2 | small–medium | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J25_section_file_resets_section.py`](repros/J25_section_file_resets_section.py) |
 | [J26](#j26) | Tagged union with an instance default rejects another member 🔧 | regression-or-pin | 🟠 S2 | small (branch) | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J26_tagged_union_instance_default.py`](repros/J26_tagged_union_instance_default.py) |
 | [J27](#j27) | One unevaluable annotation leaves every field of the class unvalidated 🔧 | bug | 🟠 S2 | small | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J27_quoted_forward_ref_in_union.py`](repros/J27_quoted_forward_ref_in_union.py) |
+| [J59](#j59) | With `unset_sentinel=True`, a `None` in a `Callable \| None` field is dumped as "Unable to serialize instance None" | regression-or-pin | 🟠 S2 | trivial | likely-bug | 4.51 ✅ 4.53 ❌ v5 ❌ | [`J59_unset_sentinel_none_callable_dump.py`](repros/J59_unset_sentinel_none_callable_dump.py) |
 | [J22](#j22) | `dump()` drops explicit `null`s; reload gives the default | intended-but-awkward | 🟡 S3 | small | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J22_dump_drops_null.py`](repros/J22_dump_drops_null.py) |
 | [J30](#j30) | `class_path` specs in `Any` fields are converted to Namespaces and filled; input mutated | intended-but-awkward | 🟡 S3 | small | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J30_any_spec_namespace.py`](repros/J30_any_spec_namespace.py) |
 | [J31](#j31) | `stubs_resolver_allow_py_files=True` gives sklearn `Ridge` zero parameters | bug | 🟡 S3 | trivial | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J31_stubs_py_files_sklearn_ridge.py`](repros/J31_stubs_py_files_sklearn_ridge.py) |
@@ -257,7 +256,11 @@ of `Model` fails. `class_path: DecoderChoice` fails too, and so does
 
 **Impact on us:** one project pins exactly `==4.51.0`, two more lock 4.51, and
 another puts `-> Any` on three Protocols. On v5, this caused 82 of 89 v5-only
-test failures in one project and 137 of 140 in another.
+test failures in one project and 137 of 140 in another. The fix branch alone
+unblocks only the first: the second project's loss classes are `nn.Module`s,
+whose `__call__` has no return annotation, so they still don't implement its
+Protocol returning `Float[Tensor, " "]` ([J02](#j02)). That project needs
+`-> Any` on the Protocol as well (checked 2026-11-26).
 
 **Status:** 4.51 ✅ 4.52 ❌ 4.53 ❌ v5 ❌.
 
@@ -426,7 +429,8 @@ is equal (`==`). This breaks in two cases:
   implement protocol"), on any version. A shared alias object
   (`Emb = Float[...]` used in both) works.
 - **`nn.Module`:** it is matched on the untyped `nn.Module.__call__`, so it
-  passes only against a Protocol returning `-> Any`.
+  passes only against a Protocol returning `-> Any`. Even with the [J01](#j01)
+  fix branch, one project's `nn.Module` losses are rejected for this reason.
 
 **Status:** separate jaxtyped annotations: 4.51 ❌ 4.53 ❌ v5 ❌. `nn.Linear`
 against `-> Tensor`: 4.51 ✅ 4.53 ❌ v5 ❌ (4.51 skipped the check, see
@@ -520,7 +524,10 @@ the `class_path` path already has. Issue draft: `issues/error-message-wording.md
 `--p=7` gives `'7'`, `--p=[a,b]` gives `"['a', 'b']"`.
 
 **Impact on us:** a run was staged into a directory called `./None`; there is
-also a ~50-line convention docstring.
+also a ~50-line convention docstring. It also blocks `unset_sentinel=True`
+([J23](#j23)): with that setting `None` is validated like any other value, so a
+`None` reaching a path field from a config or a Python mapping becomes
+`'None'` too. That broke 3 tests in one project; the fix branch fixes them.
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌. A YAML `p: null` gives `None` correctly; only
 the command line (or any source passing a real `None` to the union) is
@@ -1045,7 +1052,8 @@ when a spec is passed to an untyped parameter.
 **In short:** `x: Optional[int] = 3` given `null` is saved as `{}` and reloads
 as 3, also inside `init_args`. `dump(skip_unset=False)` keeps the `null` and is
 accepted on 4.x and v5 alike (v5 removed `skip_none`); LightningCLI's saved
-config already uses it.
+config already uses it. With `unset_sentinel=True` ([J23](#j23)) a plain
+`dump()` keeps the `null` too, since only `Unset` is then skipped.
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌.
 
@@ -1251,6 +1259,46 @@ flags (`--u.type=b`).
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌. Broken since 4.50 (#921).
 
+#### <a id="j59"></a>J59 With `unset_sentinel=True`, a `None` in a callable field is dumped as "Unable to serialize instance None"
+🟠 **S2** · trivial · likely-bug · hit in 1 of 6 · [`J59_unset_sentinel_none_callable_dump.py`](repros/J59_unset_sentinel_none_callable_dump.py)
+
+**In short:** with `set_parsing_settings(unset_sentinel=True)`, a field typed
+`Callable[...] | None` or `SomeCallableProtocol | None` whose value is `None`
+is dumped as the text `Unable to serialize instance None`. The dump then fails
+to load back. Plain `int | None` fields are dumped as `null`, as expected.
+
+**Example:**
+
+```python
+class Factory(Protocol):
+    def __call__(self, *, d: int) -> Head: ...
+
+@dataclass
+class Config:
+    f: Factory | None = None
+
+p.add_class_arguments(Config, "x")
+p.dump(p.parse_args([]))   # writes   f: Unable to serialize instance None
+```
+
+**Impact on us:** it blocks adopting `unset_sentinel=True` ([J23](#j23)): in
+one project it broke 15 tests, through a head-defaults field typed
+`HeadFactory | None = None`, whose saved configs no longer reloaded.
+
+**Status:** 4.51 ✅ 4.52 ❌ 4.53 ❌ v5 ❌ (main 670f094 too), only with
+`unset_sentinel=True`. With the default settings `None` is the unset value and
+is never serialized.
+
+**Cause:** when dumping a union, the Callable arm in `adapt_typehints`
+(`_typehints.py`) serializes the value with `serialize_as_import_path`, which
+since #966 (4.52) returns the text "Unable to serialize instance ..." instead of
+raising. So the Callable arm accepts `None` and the `None` arm is never tried.
+4.51 called `object_path_serializer`, which raised.
+
+**Fix:** in that branch, reject `None` when serializing (two lines), so the
+union falls through to `None`. Tested in a copy of main: the repro and all 15
+tests pass.
+
 [J01](#j01) and [J18](#j18), both from 4.52, are the regressions behind most of our version pins ([J03](#j03)).
 
 [↑ Contents](#contents)
@@ -1306,12 +1354,14 @@ and scripts that pop keys.
 
 ### v5 migration
 
-#### <a id="j23"></a>J23 v5: a required `X | None` can't be given `null`
-🟠 **S2** (top for v5) · medium · likely-bug · hit in 2 of 6 · [`J23_required_optional_null.py`](repros/J23_required_optional_null.py)
+#### <a id="j23"></a>J23 v5: a required `X | None` can't be given `null` unless `unset_sentinel=True`
+🟠 **S2** · n/a (on our side) · intended · hit in 2 of 6 · [`J23_required_optional_null.py`](repros/J23_required_optional_null.py)
 
-**In short:** on v5, a parameter typed `X | None` with no default treats an
-explicit `None` as missing, so it fails with "the following arguments are
-required".
+**In short:** on v5, a parameter typed `X | None` with no default is required.
+With the default settings it then can't be given `null`: an explicit `None`
+counts as "not given", so it fails with "the following arguments are required".
+This is deliberate. `set_parsing_settings(unset_sentinel=True)` is the intended
+way to have a required field where `None` is a real value.
 
 **Example:**
 
@@ -1326,30 +1376,50 @@ p.parse_object({"seq": {"count": None}})
 v5 fails with "the following arguments are required: seq.count". The same
 happens via `--seq.count=null`, YAML, `init_args`, nested dataclasses, and
 `dict`/`list` values. 4.x accepts it, with a deprecation warning that such
-parameters "will be required". A `skip_unset=False` dump that writes
-`count: null` doesn't reload.
+parameters "will be required" (shown only with
+`JSONARGPARSE_DEPRECATION_WARNINGS=all`). With `unset_sentinel=True`, `null`
+gives `None` and leaving the field out fails as required.
 
-**Impact on us:** 7 and 14 v5 test failures in two projects, and 15 recipe files
-use the value; further unverified candidates in a third project.
+**Impact on us:** fields where `None` is a meaningful choice that must be made
+explicitly, e.g. a token count where `None` means "variable", or an
+augmentation where `None` means "views produced by the workers". 7 and 14 v5
+test failures in two projects; 15 recipe files write `null` for such a field.
 
-**Status:** 4.51 ✅ 4.53 ✅ v5 ❌. With `set_parsing_settings(unset_sentinel=True)`
-every route works, and an omitted value still fails.
+**Status:** 4.51 ✅ 4.53 ✅ v5 ❌ (main 670f094 too) with default settings;
+v5 ✅ with `unset_sentinel=True`.
 
-**Workaround:** add `= None` at each site. This is a semantic change (the field
-becomes optional), and the test suites find only the sites that configs
-exercise. Or use `unset_sentinel=True`, which in one project made 52 tests fail
-(`Unset` leaking as the string 'None'; not re-checked).
+**Why it's intended:** in #678 the maintainer explained that, since argparse
+records a missing required argument as `None`, a required `Optional` argument
+can't be given `None`. #909 then added `unset_sentinel` to separate "not given"
+from `null`, and #969 made these parameters required, with a test asserting that
+`--param=null` fails under the default settings. The "Unset values" section of
+the docs describes the setting.
 
-**Cause:** `check_required` in `_core.py` compares with
-`get_parsing_setting("unset_sentinel")`, which is `None` by default, so an
-explicit `None` counts as missing.
+**Workaround, tested (2026-11-26):** `set_parsing_settings(unset_sentinel=True)`
+when moving to v5. On upstream main 670f094 with the J01 fix, two projects'
+suites ran with and without it: it fixed all 21 and 14 `null` failures and
+broke nothing, once two small jsonargparse bugs it exposes were patched in
+both runs: [J59](#j59) (a `None` in a callable field is dumped as text) and
+[J13](#j13) (a `None` path becomes `'None'`). Without those patches it broke 18
+tests in one project. Things to adjust when adopting it:
 
-**Fix:** no one-line fix: flipping the default fails 111 upstream tests, and a
-narrower variant fails 288 and misses `init_args`. It needs a decision: default
-required nullable parameters to `Unset` internally, or record that a key was
-given. Meanwhile, name `unset_sentinel=True` in the deprecation message and the
-guide. Issue draft:
-[`issues/required-nullable-null.md`](issues/required-nullable-null.md).
+- don't turn it on under 4.x: there these parameters aren't required yet, so a
+  missing one reaches the constructor as `Unset`;
+- plain `add_argument` options without a default give `Unset` instead of
+  `None` when not given (`Unset` is falsy, so `if not x` works but `is None`
+  doesn't);
+- `get_defaults()` shows `Unset` for required fields, and
+  `dump(skip_unset=False)` writes `==UNSET==`, which doesn't reload. A plain
+  `dump()` now keeps explicit `null`s ([J22](#j22)), so the `skip_unset=False`
+  calls added for that can go.
+
+For a field that has to be given explicitly but could do without `None`, naming
+the choice (e.g. `int | Literal["variable"]`) also works on any setting.
+
+**Ask:** a docs note only. The migration guide's "become required" entry and
+the v4 deprecation message could say that such fields can't take `null` unless
+`unset_sentinel=True` is set. Better as a comment in the v5 thread (#999) than
+an issue. Note: [`issues/required-nullable-null.md`](issues/required-nullable-null.md).
 
 #### <a id="j45"></a>J45 v5 migration of our own code, and guide gaps
 🟡 **S3** · small · likely (docs) · hit in 5 of 6 · no repro
