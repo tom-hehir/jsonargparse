@@ -343,6 +343,10 @@ it's rejected.
 
   The MLP run gets slightly slower because its fields are now actually checked.
   All four real run files still pass with validation on.
+- The speed difference is too small to matter for us: about 1-2 s on the
+  largest commands. The extra time grows in a straight line with the number of
+  stages parsed, so it would only add up for something like a sweep parsing
+  hundreds of stage configs. The reason to fix J04 is the missing validation.
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌.
 
