@@ -812,7 +812,11 @@ def convert_to_dict(value) -> dict:
 
     value_type = type(value)
     init_args = {}
-    for name, attr in {**vars(value), **get_pydantic_extra_fields(value)}.items():
+    if hasattr(value, "__dict__"):
+        attributes = vars(value)
+    else:  # dataclass with slots
+        attributes = {f.name: getattr(value, f.name) for f in dataclasses.fields(value)}
+    for name, attr in {**attributes, **get_pydantic_extra_fields(value)}.items():
         attr_type = type(attr)
         if is_convertible_to_dict(attr_type):
             attr = convert_to_dict(attr)

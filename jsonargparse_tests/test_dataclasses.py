@@ -1184,6 +1184,21 @@ def test_dataclass_abstract_subclasses_enabled(parser):
     assert init.data == DataAbstractImpl(p1=1, p2="y")
 
 
+@dataclasses.dataclass(slots=True)
+class DataSlots:
+    p1: int = 1
+    p2: str = "x"
+
+
+@pytest.mark.parametrize("data_type", [DataSlots, Optional[DataSlots]])
+def test_dataclass_slots_instance_default(parser, data_type):
+    parser.add_argument("--data", type=data_type, default=DataSlots(p1=2))
+    cfg = parser.parse_args(["--data.p2=y"])
+    assert cfg.data == Namespace(p1=2, p2="y")
+    assert parser.instantiate(cfg).data == DataSlots(p1=2, p2="y")
+    assert json_or_yaml_load(parser.dump(cfg))["data"] == {"p1": 2, "p2": "y"}
+
+
 # same capabilities for a dataclass-like type and its optional counterpart
 
 
