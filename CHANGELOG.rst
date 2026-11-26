@@ -273,6 +273,10 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- A class given as default of a callable or protocol type that returns a
+  subclass, when nested in a union or a dataclass default, being dumped as an
+  import path without its ``init_args``, so that dumping again after parsing the
+  result differed (`#???? <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^

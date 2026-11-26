@@ -60,7 +60,7 @@ from warnings import catch_warnings, simplefilter
 
 import pytest
 
-from jsonargparse import ArgumentError, Namespace, lazy_instance
+from jsonargparse import ArgumentError, Namespace, lazy_instance, set_parsing_settings
 from jsonargparse._optionals import (
     LiteralString,
     pyyaml_available,
@@ -3426,6 +3426,32 @@ def test_callable_protocol_instance_factory(parser, subtests):
         assert f"Help for --optimizer.help={__name__}.DifferentParamsOrder" in help_str
         assert "--optimizer.lr" in help_str
         assert "--optimizer.params" not in help_str
+
+
+@dataclass(frozen=True)
+class OptimizerSettings:
+    factory: OptimizerFactory = SGD
+
+
+@dataclass
+class OptimizerSettingsDefault:
+    settings: OptimizerSettings = OptimizerSettings()
+
+
+@dataclass
+class OptimizerFactoryOrSettings:
+    optimizer: Union[OptimizerFactory, OptimizerSettings] = SGD
+
+
+@pytest.mark.parametrize("data_class", [OptimizerSettingsDefault, OptimizerFactoryOrSettings])
+def test_callable_protocol_class_default_nested_dump(parser, subclass_behavior, data_class):
+    set_parsing_settings(subclasses_enabled=["is_pure_dataclass"])
+    parser.add_class_arguments(data_class, "data")
+    cfg = parser.parse_args([])
+    dump = parser.dump(cfg)
+    assert f"class_path: {__name__}.SGD" in dump
+    assert "momentum: 0.0" in dump
+    assert parser.dump(parser.parse_string(dump)) == dump
 
 
 @pytest.mark.parametrize(

@@ -1945,7 +1945,9 @@ def adapt_typehints(
                 return adapted
             try:
                 val_input = val
-                if isinstance(val, str):
+                if inspect.isclass(val) and ActionTypeHint.is_return_subclass_typehint(typehint):
+                    val = Namespace(class_path=get_import_path(val))
+                elif isinstance(val, str):
                     class_path = val
                     return_type = get_callable_return_type(typehint)
                     if "." not in val and return_type:
