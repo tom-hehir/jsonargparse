@@ -273,6 +273,11 @@ Fixed
 - ``timedelta`` values with trailing text after a valid duration, e.g.
   ``1:2:3 trailing``, being accepted with the trailing text silently ignored
   (`#1039 <https://github.com/mauvilsa/jsonargparse/pull/1039>`__).
+- Dataclasses with postponed annotations and a base from a different module that
+  is not the first one, having all their fields unvalidated, and an inherited
+  field being resolved with the names of the module of the subclass or of
+  another base, instead of the module of the base that defines it (`#????
+  <https://github.com/mauvilsa/jsonargparse/pull/????>`__).
 
 Changed
 ^^^^^^^

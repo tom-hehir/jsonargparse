@@ -54,7 +54,10 @@ from jsonargparse._typehints import (
 )
 from jsonargparse.typing import Path_drw
 from jsonargparse_tests.conftest import capture_logs, get_parser_help, source_unavailable
-from jsonargparse_tests.different_module_type_checking import DifferentModuleTypeCheckingTypedDict
+from jsonargparse_tests.different_module_type_checking import (
+    DifferentModuleTypeCheckingDataclass,
+    DifferentModuleTypeCheckingTypedDict,
+)
 from jsonargparse_tests.test_dataclasses import DifferentModuleBaseData
 
 
@@ -889,6 +892,33 @@ def test_get_params_dataclass_inherit_different_module():
     assert "BetweenThreeAndNine" in str(params[0].annotation)
     assert not isinstance(params[1].annotation.__args__[0], str)
     assert "PositiveInt" in str(params[1].annotation)
+
+
+@dataclasses.dataclass
+class FirstBaseData:
+    seed: int | None = None
+
+
+@dataclasses.dataclass
+class InheritDifferentModuleSecondBase(FirstBaseData, DifferentModuleTypeCheckingDataclass):
+    same_name_in_derived: SameNameInBothModules | None = None
+
+
+def test_dataclass_inherit_different_module_second_base(parser):
+    # only_in_base is exclusive to the TYPE_CHECKING block of the module of the second base
+    params = {p.name: p.annotation for p in get_params(InheritDifferentModuleSecondBase)}
+    assert params["only_in_base"].__args__[0].__name__ == "TypeCheckingOnlyInDifferentModule"
+    parser.add_class_arguments(InheritDifferentModuleSecondBase, "data")
+    assert parser.parse_args(["--data.seed=3"]).data.seed == 3
+    with pytest.raises(ArgumentError, match='Parser key "data.seed"'):
+        parser.parse_args(["--data.seed=x"])
+
+
+def test_dataclass_inherit_different_module_same_name():
+    params = {p.name: p.annotation for p in get_params(InheritDifferentModuleSecondBase)}
+    # a name defined in both modules resolves to the one of the module that defines the field
+    assert params["same_name_in_base"].__args__[0].defined_in == "base"
+    assert params["same_name_in_derived"].__args__[0].defined_in == "derived"
 
 
 def test_get_global_vars_ignores_type_checking_source_errors(monkeypatch):

@@ -1,5 +1,6 @@
 from __future__ import annotations  # keep
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
 
 from jsonargparse._typehints import Required
@@ -27,3 +28,11 @@ class DifferentModuleTypeCheckingTypedDict(TypedDict, total=False):
     amount: Decimal
     only_in_base: TypeCheckingOnlyInDifferentModule
     same_name_in_base: SameNameInBothModules
+
+
+@dataclass
+class DifferentModuleTypeCheckingDataclass:
+    """Base for a dataclass that is inherited in a different module, see the TypedDict above."""
+
+    only_in_base: TypeCheckingOnlyInDifferentModule | None = None
+    same_name_in_base: SameNameInBothModules | None = None

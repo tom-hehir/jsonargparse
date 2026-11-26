@@ -262,13 +262,21 @@ def update_module_global_vars(module: str, global_vars: dict, logger: logging.Lo
 
 def get_global_vars(obj: Any, logger: logging.Logger | None) -> dict:
     global_vars = getattr(obj, "__globals__", {}).copy()
-    if is_dataclass(obj):
-        next_mro = inspect.getmro(obj)[1]  # type: ignore[arg-type]
-        if is_dataclass(next_mro):
-            global_vars.update(get_global_vars(next_mro, logger))
     update_module_global_vars(obj.__module__, global_vars, logger)
     _enrich_globals_for_string_forward_refs(global_vars)
     return global_vars
+
+
+def get_class_type_hints(cls: type, logger: logging.Logger | None) -> dict:
+    """Returns the resolved annotations of a class, each base resolving its own in the names of its module."""
+    types: dict = {}
+    for base in reversed(inspect.getmro(cls)):
+        annotations = inspect.get_annotations(base)
+        if annotations:
+            # A holder class is used so that only the annotations of this base are resolved
+            holder = type("holder", (), {"__annotations__": annotations})
+            types.update(get_type_hints(holder, get_global_vars(base, logger), vars(base), include_extras=True))
+    return types
 
 
 def is_type_like(value: Any) -> bool:
@@ -345,12 +353,15 @@ def add_literal_value_aliases(arg_ast: ast.AST, aliases: dict, literal_values: d
 
 def get_types(obj: Any, logger: logging.Logger | None = None, parent: Any = None) -> dict:
     global_vars = get_global_vars(obj, logger)
-    # Locals are only needed for methods. For a class get_type_hints already uses as locals
-    # the namespace of each of the bases that the annotations come from.
+    # Locals are only needed for methods. For a class, the namespace of each of the bases
+    # that the annotations come from is used as locals, see get_class_type_hints.
     owner = None if inspect.isclass(obj) else get_owner_class(obj) or parent
     local_vars = None if inspect.isclass(obj) else get_local_vars(owner)
     try:
-        types = get_type_hints(obj, global_vars, local_vars, include_extras=True)
+        if inspect.isclass(obj):
+            types = get_class_type_hints(obj, logger)
+        else:
+            types = get_type_hints(obj, global_vars, local_vars, include_extras=True)
     except Exception as ex1:
         types = ex1
     if not isinstance(types, Exception) and all(not type_requires_eval(t) for t in types.values()):
