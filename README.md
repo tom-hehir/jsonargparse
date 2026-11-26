@@ -1,65 +1,99 @@
-# jsonargparse issues we have run into
+# jsonargparse: notes from heavy use
 
-Problems found while using jsonargparse for training configs: nested dataclasses
-with subclasses enabled (`set_parsing_settings(subclasses_enabled=["is_pure_dataclass"])`),
-`class_path` values several levels deep, and LightningCLI.
+I use jsonargparse for the training and pipeline configs of my research
+projects, and rely on it every day: nested dataclasses, `class_path` values
+several levels deep, callable Protocols, generics and LightningCLI. Thank you
+for it. This page collects the problems that came up along the way.
 
-Each issue was checked on 2026-11-22 against jsonargparse **4.53.0** (the latest
-v4 release) and **main** (5.0.0rc2, commit 2e925db). The fix branches on this
-fork have no pull requests yet unless one is linked; draft descriptions are in
-[`prs/`](prs/).
+There are a lot of them, partly because these projects use many features
+together, so I am filtering them myself. The first table is what I plan to send,
+a few at a time, as separate issues or pull requests; the rest are listed for
+context only. The order is by impact on my own work, not a judgment of what
+matters most for jsonargparse. There's no need to go through this page; it's
+here in case the background is useful.
 
-A fuller, ranked inventory (2026-11-24, every issue re-checked on 4.51.0, 4.53.0
-and 5.0.0rc2, with severity and a shortlist) is in [`inventory.md`](inventory.md),
-with one standalone script per issue in [`repros/`](repros/). Where the two
-disagree, `inventory.md` is newer; its last section lists the corrections.
+Every issue ID links to a longer description in [`inventory.md`](inventory.md),
+with a standalone script in [`repros/`](repros/). Each fix branch is cut from
+`main` (3b30c14); its new tests fail without the fix, the full test suite passes
+on Python 3.12 and 3.14, and ruff and mypy report nothing new.
 
-Fix branches for the shortlist (2026-11-26), with links to their diffs, their
-size, and whether each should go upstream as a PR or as an issue first, are in
-[`FIX-STATUS.md`](FIX-STATUS.md). Issue drafts are in [`issues/`](issues/).
+**Severity** (my guess): **S1** silent wrong values or lost validation in normal
+use, or blocks an upgrade · **S2** forces an awkward workaround, or is silent but
+needs an unusual setup · **S3** real but contained, or has a clean workaround ·
+**S4** cosmetic or rare.
 
-## Being fixed
+**Lines** are added / removed against `main`: library code, tests, docs
+(`DOCUMENTATION.rst`) and changelog.
 
-| Issue | Broken since | Fix |
-| ----- | ------------ | --- |
-| A Protocol whose `__call__` returns a class rejects classes whose instances implement it | 4.52.0 | branch [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances), [draft PR](prs/fix-factory-protocol-instances.md) |
-| A subscripted generic annotation (`Codec[Spectrum]`) rejects a subclass's `init_args` | all versions tried | branch [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args), [draft PR](prs/fix-subscripted-generic-init-args.md) |
-| A union of dataclasses with an instance default rejects values for another member | 4.50.0 | branch [`fix-tagged-union-instance-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default), [draft PR](prs/fix-tagged-union-instance-default.md) |
-| A dataclass default with an attribute that isn't an `__init__` parameter is rejected by union, `Optional` and subclass types | unions: 4.42.0, and 4.50.0; subclass types: always | branch [`fix-default-instance-non-field-attributes`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes), [draft PR](prs/fix-default-instance-non-field-attributes.md) |
+## Planned, in order
 
-**Protocols with `__call__`.** Since 4.52 a Protocol whose `__call__` returns a
-class is treated as a factory, so a `class_path` must be a subclass of the return
-type, and a class whose instances implement the Protocol is rejected ("Expected
-'...' to be a subclass of ..."). An unannotated return counts as a class too.
-The fix accepts such classes. Classes whose `__call__` has no return annotation,
-like `torch.nn.Module`, still don't match a Protocol with an annotated return,
-since Protocol signatures must match exactly; annotating the Protocol's return as
-`Any` works around it.
+| # | ID | What goes wrong | Sev | Planned as | Code | Tests | Docs | Changelog | Links |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | [J01](inventory.md#j01) | A class whose instances implement a callable Protocol (or `Callable[..., Class]`) is rejected as its `class_path`, since 4.52 | S1 | PR; the `Callable` part as a question | +23 −4 | +49 | – | +7 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [draft](prs/fix-factory-protocol-instances.md) |
+| 2 | [J23](inventory.md#j23) | v5: a required `X \| None` parameter can't be given `null` | S2 | Issue | – | – | – | – | [draft](issues/required-nullable-null.md) |
+| 3 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | A dataclass default with attributes that aren't `__init__` parameters (set in `__post_init__`, or `init=False`), or with `slots=True`, is rejected for union, `Optional` and subclass types | S2 | PR | +8 −1 | +45 | – | +8 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) · [draft](prs/fix-default-instance-non-field-attributes.md) |
+| 4 | [J24](inventory.md#j24) | A class default of a Protocol field, inside a default instance or a union, is dumped as a bare import path without its `init_args` | S2 | PR | +3 −1 | +27 −1 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-class-default-dump) · [draft](prs/fix-protocol-class-default-dump.md) |
+| 5 | [J15](inventory.md#j15) | A subscripted generic (`Model[int]`) rejects the `init_args` of a subclass given as `class_path` | S2 | PR | +3 −4 | +27 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args) · [draft](prs/fix-subscripted-generic-init-args.md) |
+| 6 | [J14](inventory.md#j14) | With `sub_configs=True`, a `str` value that names an existing file is replaced by the file's contents, and large files are read several times | S2 | Issue, with a prototype fix | +2 | +32 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-str-value-read-as-config) · [draft](issues/str-value-read-as-config.md) |
+| 7 | [J04](inventory.md#j04) + [J44](inventory.md#j44) | A dataclass whose second base is in another module silently loses validation of every field; or an inherited field resolves to a different class of the same name | S1 | PR | +18 −7 | +40 −1 | – | +5 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-inherited-annotation-namespace) · [draft](prs/fix-inherited-annotation-namespace.md) |
+| 8 | [J13](inventory.md#j13) | A command-line `null` for `os.PathLike \| None` becomes the string `"None"` | S2 | PR | +8 −1 | +8 | – | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-pathlike-coercion) · [draft](prs/fix-pathlike-coercion.md) |
+| 9 | [J26](inventory.md#j26) | A union of tagged dataclasses with an instance default rejects values for another member, since 4.50 | S2 | PR, with a question | +5 −1 | +36 −1 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default) · [draft](prs/fix-tagged-union-instance-default.md) |
 
-**Subscripted generics.** With `class Codec(Generic[M])` and a field typed
-`Codec[Spectrum]`, a `class_path` naming a subclass with its own parameter fails
-with "Option 'depth' is not accepted". A plain `Codec` annotation works.
+## Fixed locally, lower priority
 
-**Unions with an instance default.** A field typed `A | B` with default `A()`,
-where `A` and `B` have `type: Literal["a"]` and `type: Literal["b"]` fields,
-rejects `{"type": "b", "x": 3}`. It works without the default, and with dotted
-`--u.type=b`. Since 4.50 the default's `class_path` is kept while parsing, so
-that a partial value updates the default's class (#921); every other member is
-then checked against that class.
+Branches exist for these, but I don't plan to send them for now.
 
-**Attributes that aren't `__init__` parameters, on a default instance.** A
-dataclass default that sets an attribute in `__post_init__` (public or
-`_`-prefixed), or has a `field(init=False)`, is rejected ("Option '_x' is not
-accepted") when the field's type is a union, `Optional`, or a subclass type
-(including `subclasses_enabled=["is_pure_dataclass"]`). A plain dataclass type
-works, and so do the same values given as `class_path` + `init_args`.
-`convert_to_dict` turns the default into `init_args` from `vars(value)`, so it
-picks up every instance attribute; until 4.41 it used `dataclasses.asdict`, and
-#781 (4.42.0) switched for pydantic support. The plain path already drops these
-keys on purpose (#650). Unions worked in 4.32-4.41 and 4.46-4.49; subclass types
-have always failed. The fix keeps only the class's `__init__` parameters, as
-resolved by `get_signature_parameters`, which also covers a hand-written
-`__init__` and stored `InitVar`s.
+| ID | What goes wrong | Sev | Code | Tests | Docs | Changelog | Links |
+|---|---|---|---|---|---|---|---|
+| [J27](inventory.md#j27) | One annotation that can't be evaluated leaves every field of the class unvalidated | S2 | +16 −1 | +27 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-unevaluable-annotation-fallback) · [draft](prs/fix-unevaluable-annotation-fallback.md) |
+| [J09](inventory.md#j09) | Lists, tuples and dicts of dataclass defaults are dumped as "Unable to serialize instance" text that doesn't reload | S2 | +13 −1 | +65 | – | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-dump-container-defaults) · [draft](prs/fix-dump-container-defaults.md) |
+| [J43](inventory.md#j43) | `parse_object` replaces `class_path` dicts in the caller's lists and dicts with Namespaces | S3 | +5 −3 | +16 | – | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-parse-object-mutates-input) · [draft](prs/fix-parse-object-mutates-input.md) |
+| [J10](inventory.md#j10) | A second identical `set_parsing_settings(subclasses_enabled=[...])` call raises | S2 | +5 −2 | +9 | +4 −4 | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-parsing-settings-idempotent) · [draft](prs/fix-parsing-settings-idempotent.md) |
+| [J12](inventory.md#j12) | Two error messages that point away from the cause | S2 | – | – | – | – | [issue draft](issues/error-message-wording.md) |
+| [J17](inventory.md#j17) | A Protocol whose members all start with `_` matches nothing, with an unhelpful message | S2 | +8 −1 | +15 | – | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-private-members-message) · [draft](prs/fix-protocol-private-members-message.md) |
+| [J47](inventory.md#j47) | A `default_factory` that raises gives no hint of which class or field | S3 | +4 −1 | +21 | – | +3 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-factory-error-context) · [draft](prs/fix-default-factory-error-context.md) |
+
+## Other open points
+
+For context only: no fix work, and nothing planned. Several are intended or
+documented behaviour that was awkward for my use, not bugs.
+
+| ID | What | Kind | Sev |
+|---|---|---|---|
+| [J05](inventory.md#j05) | Plain-class instance default: a partial override silently discards its values | bug | S1 |
+| [J06](inventory.md#j06) | Dict fields in overlays: key set replaced, surviving keys merged; dotted form merges | intended but awkward | S1 |
+| [J07](inventory.md#j07) | LightningCLI 2.6.x calls APIs removed in v5 | lightning interplay | S1 |
+| [J02](inventory.md#j02) | Protocol matching needs identical annotations: jaxtyping never equal; Modules need `-> Any` | bug | S2 |
+| [J11](inventory.md#j11) | Subclass mode: section files rejected, nested options hidden from `--help`, dump shape changes | intended but awkward | S2 |
+| [J18](inventory.md#j18) | C builtins rejected for `Callable[[Tensor], Tensor]`; stubs setting read once | intended but awkward | S2 |
+| [J19](inventory.md#j19) | No placeholder interpolation before validation | missing feature | S2 |
+| [J20](inventory.md#j20) | No deferred instantiation (validate a `class_path` now, build later) | missing feature | S2 |
+| [J25](inventory.md#j25) | A section file given to a parent group resets nullable sections | intended but awkward | S2 |
+| [J22](inventory.md#j22) | `dump()` drops explicit `null`s; reload gives the default | intended but awkward | S3 |
+| [J30](inventory.md#j30) | `class_path` specs in `Any` fields are converted to Namespaces and filled; input mutated | intended but awkward | S3 |
+| [J31](inventory.md#j31) | `stubs_resolver_allow_py_files=True` gives sklearn `Ridge` zero parameters | bug | S3 |
+| [J32](inventory.md#j32) | `**kwargs`/untyped constructors need hand-written typed wrappers | intended but awkward | S3 |
+| [J33](inventory.md#j33) | Recursive PEP 695 alias with a quoted self-reference fails | bug | S3 |
+| [J34](inventory.md#j34) | A docstring-parser failure silently drops constructor parameters | bug | S3 |
+| [J35](inventory.md#j35) | Stale `--config` in nested parsers of a parser subclass | bug | S3 |
+| [J36](inventory.md#j36) | Tuple-keyed dicts keep string keys; tuple-key default dump doesn't reload | bug | S3 |
+| [J37](inventory.md#j37) | Sentinels: `register_type` serializer applied by union arm; `Unset` doesn't reload on v5 | bug | S3 |
+| [J38](inventory.md#j38) | Function as `class_path` judged by return annotation only | intended but awkward | S3 |
+| [J40](inventory.md#j40) | `null` accepted for non-Optional fields with a default (config only) | intended but awkward | S3 |
+| [J41](inventory.md#j41) | Dotted overrides can't reach list entries; links can't reach list or dict entries | missing feature | S3 |
+| [J42](inventory.md#j42) | Saved LightningCLI `config.yaml` doesn't load into `run=False` | lightning interplay | S3 |
+| [J45](inventory.md#j45) | v5 migration of our own code, and migration-guide gaps | v5 migration | S3 |
+| [J48](inventory.md#j48) | No public warning category; private filter path removed in v5 | warning noise | S4 |
+| [J49](inventory.md#j49) | v5 dumps `init_args: {args: []}` for `nn.Module` subclasses | v5 migration | S4 |
+| [J50](inventory.md#j50) | `exit_on_error=True` default raises `SystemExit` in library code | intended but awkward | S4 |
+| [J51](inventory.md#j51) | `instantiate` doesn't build a dataclass added at the root | intended but awkward | S4 |
+| [J52](inventory.md#j52) | Field docs in `--help` need a global setting | intended but awkward | S4 |
+| [J53](inventory.md#j53) | A top-level `_anchors:` holder for YAML anchors is rejected | intended but awkward | S4 |
+| [J54](inventory.md#j54) | A list field can't be loaded from a file path (without `sub_configs=True`) | missing feature | S4 |
+| [J55](inventory.md#j55) | argcomplete crashes on subcommand options and misses `class_path` fields | missing feature | S4 |
+| [J56](inventory.md#j56) | `Union[Dataclass, dict]` with an empty-dict default is filled with the dataclass defaults | warning noise | S4 |
+| [J57](inventory.md#j57) | Bare-generic dataloader fields failed with `__args__` | bug | S4 |
+| [J58](inventory.md#j58) | `--print_config` writes relative paths as given; `--config` resolves them against the file | intended but awkward | S4 |
 
 ## Fixed upstream
 
@@ -71,86 +105,3 @@ resolved by `get_signature_parameters`, which also covers a hand-written
 | An error raised in a constructor is reported as "Does not validate against any of the Union subtypes" | main ([#1015](https://github.com/mauvilsa/jsonargparse/pull/1015)) |
 | Changing `class_path` keeps the old class's `init_args`, so an optimizer defaulting to `Adam`, switched to `AdamW`, keeps `weight_decay=0.0` (this was documented behaviour) | main ([#1038](https://github.com/mauvilsa/jsonargparse/pull/1038), merged 2026-11-25): discarded by default, `prior_init_args: keep` to opt back in; v4 branch ([#1037](https://github.com/mauvilsa/jsonargparse/pull/1037), for 4.54): the same option, with keeping deprecated |
 | `class_path` specs inside `object` / `Any` fields get instantiated | off by default in 5.0 ([#969](https://github.com/mauvilsa/jsonargparse/pull/969)); `instantiate_subclass_spec_in_any=False` on 4.x |
-
-## Still open
-
-Present on both 4.53.0 and main. None of these is being worked on here.
-
-### Wrong values without an error
-
-- **A path is read as a config.** With `sub_configs=True`, a string for a type
-  that also accepts a class (`str | SomeDataclass`) is loaded when it names an
-  existing file. A `.csv` path becomes the file's text, and that text is what
-  gets dumped.
-- **`register_type` serializers chosen by union member, not by value.** With
-  `INHERIT | bool`, `False` is dumped as `INHERIT`; a `type_check` doesn't help.
-- **`dump` drops explicit `null`s.** `--a=null` over a default of 3 dumps as
-  `{}`, so reloading gives 3.
-- **Path types.** For `os.PathLike | None`, a command-line `null` becomes the
-  string `"None"`, and `os.PathLike` turns `7` into `"7"`.
-- **Tuple keys.** `dict[tuple[str, str], float]` accepts any string as a key,
-  and a dumped tuple-key default can't be reloaded.
-- **Unevaluable annotations.** One annotation that can't be resolved leaves every
-  field of that dataclass unvalidated.
-- **`Unset` sentinel.** `==UNSET==` dumps but doesn't reload. On main an explicit
-  `Unset` default can't be reloaded at all ("denied by the import path
-  denylist"), which is new in 5.0.
-
-### Valid configs rejected
-
-- **Protocols.** A Protocol whose members are all `_`-prefixed matches nothing,
-  and signatures must match annotations exactly (`x: float | int` doesn't
-  implement `x: float`; a narrower return type is rejected).
-- **Functions as `class_path`.** A function is judged only by its return
-  annotation: a TypeVar return is rejected, and so is a broader return type than
-  the field's.
-- **Undumpable defaults.** `dict` or `functools.partial` defaults can't be
-  dumped ("Unable to serialize instance").
-- **Slotted dataclasses.** `slots=True` dataclass defaults fail with "vars()
-  argument must have __dict__ attribute".
-
-### Other
-
-- **Docstring parsing.** If the docstring parser fails on a class (e.g. a base
-  class like `bidict`), its constructor parameters are silently dropped.
-- **Global settings.** Calling `set_parsing_settings(subclasses_enabled=[...])` a
-  second time with the same value raises, and there's no public way to read the
-  setting.
-- **Stale `--config` in nested parsers.** With a parser subclass that adds
-  `--config` in `__init__`, a class with a `config` parameter fails with
-  "argument '--config' already exists".
-- **`link_arguments`** can't target a dict or list entry.
-- **`stubs_resolver_allow_py_files=True` drops every parameter of sklearn's
-  `Ridge`** ("Option 'alpha' is not accepted"). With the setting on, the stub
-  resolver reads `sklearn/linear_model/_ridge.py`, follows assignments inside
-  functions (e.g. `alpha = check_scalar_alpha(alpha, ...)`) in
-  `add_module_aliases`, and recurses until `RecursionError`. That error is only
-  logged at debug level, and the class is left with no parameters. Without the
-  setting `Ridge` parses; other sklearn estimators tried were unaffected. Also
-  on 4.51.0, with sklearn 1.8.0. Low priority and not being pursued: no fix
-  branch, nothing upstream. We avoid the setting instead (one of our projects
-  annotates the callable as `Callable[[Tensor], Any]`, see the entry on C
-  builtins below).
-
-## Intended behaviour, or not reproduced
-
-- **C builtins such as `torch.log1p` rejected for `Callable[[Tensor], Tensor]`
-  (since 4.52).** A function given by import path must have a return annotation,
-  or a return type in a stub file, that matches the callable's (documented; added
-  in #959, stub fallback in #963). torch's stubs are only found with
-  `set_parsing_settings(stubs_resolver_allow_py_files=True)`, which fixes it, but
-  only if set before the first parse: the stubs resolver is created once and
-  later setting changes are ignored. That caching is a possible small upstream
-  fix. The setting also breaks sklearn's `Ridge` (see Still open), so we use a
-  `Callable[[Tensor], Any]` annotation instead.
-
-- `null` means "unset", so it's accepted for non-Optional fields.
-- A section file (`--trainer b.yaml`) replaces the section instead of merging
-  into it; 5.0 adds `__include__` for composing configs.
-- `**kwargs` and untyped parameters can't be checked.
-- PEP 695 generic aliases: on main they work when the self-reference isn't
-  quoted (`type D[T] = dict[str, T | D[T]]`). On 4.53 that form hits a recursion
-  error.
-- Not reproduced on 4.53 or main: a parameter with an unevaluable annotation
-  being dropped (it's kept, unvalidated); a leading `Any` union member swallowing
-  a sentinel; `field(init=False)` breaking defaults.
