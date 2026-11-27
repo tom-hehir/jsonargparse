@@ -102,10 +102,10 @@ With `unset_sentinel=True` on, [J59](#j59) also breaks saved configs.
    draft Lightning-AI/pytorch-lightning#22014 covers it. Suggestion: a note in the
    guide on LightningCLI's status, and confirmation that
    `instantiate(..., instantiators=...)` is stable API.
-3. **[J01](#j01) also affects `Callable[..., Class]`.** Since 4.52, not new in
-   v5. The fix branch handles it in a separate second commit, which relaxes a
-   check added on purpose in 4.52 (#959), so it is a question for the
-   maintainer.
+3. 🟢 **[J01](#j01), the Protocol case, is fixed** on main by #1043 (merged
+   2026-11-27). The same problem with `Callable[..., Class]` remains, since
+   4.52, not new in v5. Its fix is held back locally, since it relaxes a check
+   added on purpose in 4.52 (#959).
 4. **Gaps in the migration guide** ([J45](#j45)):
    - the `add_instantiator` row says to use `instantiators=`, while the v4
      deprecation message says to use the global function;
@@ -155,7 +155,7 @@ Sorted by severity, then ID. 🔧 marks the ones with a fix branch.
 
 | ID | Title | Kind | Sev | Effort | Appetite | Status | Repro |
 |---|---|---|---|---|---|---|---|
-| [J01](#j01) | Callable Protocol (and `Callable[..., C]`) rejects classes whose instances implement it 🔧 | regression-or-pin | 🔴 S1 | small | likely-bug | 4.51 ✅ 4.53 ❌ v5 ❌ | [`J01_protocol_call_returns_class.py`](repros/J01_protocol_call_returns_class.py) |
+| [J01](#j01) | Callable Protocol (and `Callable[..., C]`) rejects classes whose instances implement it; 🟢 Protocol case fixed by #1043, `Callable` case open | regression-or-pin | 🔴 S1 | small | likely-bug | 4.51 ✅ 4.53 ❌ v5 ❌ | [`J01_protocol_call_returns_class.py`](repros/J01_protocol_call_returns_class.py) |
 | [J04](#j04) | Dataclass with a non-first base from another module: every field silently unvalidated 🔧 | bug | 🔴 S1 | small | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J04_mixin_base_unvalidated.py`](repros/J04_mixin_base_unvalidated.py) |
 | [J05](#j05) | Plain-class instance default: a partial override silently discards its values | bug | 🔴 S1 | small–medium | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J05_instance_default_partial_override.py`](repros/J05_instance_default_partial_override.py) |
 | [J06](#j06) | Dict fields in overlays: key set replaced, surviving keys merged; dotted form merges | intended-but-awkward | 🔴 S1 | medium | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J06_dict_overlay_key_set.py`](repros/J06_dict_overlay_key_set.py) |
@@ -227,7 +227,7 @@ Fixed upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21),
 🔴 **S1** · small · likely-bug · hit in 4 of 6 · [`J01_protocol_call_returns_class.py`](repros/J01_protocol_call_returns_class.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-factory-protocol-instances`, opened as [#1043](https://github.com/mauvilsa/jsonargparse/pull/1043) (text in `prs/`), one commit on main cc53487 (2026-11-27) for the Protocol case. The `Callable[..., Class]` part is held back on the local branch `fix-callable-class-instances`.
+> **🟢 Partly fixed upstream**: the Protocol case is fixed on main by [#1043](https://github.com/mauvilsa/jsonargparse/pull/1043), merged 2026-11-27 (text in `prs/`), not yet released and not on the v4 branch. The `Callable[..., Class]` case is still open; its fix is held back on the local branch `fix-callable-class-instances`.
 
 **In short:** since 4.52, a Protocol whose `__call__` returns a class (and
 likewise a `Callable[..., Class]`) is treated as a factory for that class. So a
@@ -793,7 +793,7 @@ only through `.py` files.
 🟠 **S2** · small · likely-bug · hit in 1 of 6 · [`J24_protocol_class_default_dump.py`](repros/J24_protocol_class_default_dump.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-protocol-class-default-dump` (draft PR in `prs/`).
+> **🔧 Fix branch**: `fix-protocol-class-default-dump` (draft PR in `prs/`), rebased on main 2656bf3 (2026-11-27).
 
 **In short:** take `discrete: Factory = Decoder`, where `Factory` is a
 `__call__` Protocol. When this default sits inside a dataclass default
@@ -804,15 +804,21 @@ plus `init_args` (`width: 4`). So the saved config leaves out the
 hyperparameters, and a later change of the code default silently changes what
 an old config means.
 
-A plain `x: Factory = Decoder` field and `Callable[..., Decoder]` are saved
-correctly on the first dump (checked; narrower than first reported).
+A plain `x: Factory = Decoder` field is saved correctly on the first dump, and
+so is a plain `Callable[..., Decoder]` field. A `Callable[..., Decoder]` field
+inside a dataclass default is affected too when subclasses are enabled for
+dataclasses (checked on main 2656bf3, 2026-11-27). Values that are overridden
+are saved in full; only untouched defaults are affected.
 
 **Impact on us:** affects the saved config of every training run in one
 project.
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌.
 
-**Workaround:** none in use (the project dumps only once).
+**Workaround:** save the code version with each config, and reload a config
+only with that version. A changed default then can't change what an old config
+gives. The affected project already records the commit, branch and dirty state
+with each run, so this needs no new code there.
 
 **Fix:** save class defaults of Protocol fields as `class_path`/`init_args`
 when the default comes from an enclosing default instance or a union.
@@ -1549,12 +1555,13 @@ Merged upstream. *Released* says whether a release has the fix yet.
 | ID | Issue | Sev | Fixed by | Released | What it unlocks, or what is left |
 |---|---|---|---|---|---|
 | [J21](#j21) | Changing `class_path` keeps the old class's `init_args`, including defaults | 🟠 S2 | #1038 (main), #1037 (v4 branch), by the maintainer; merged 2026-11-25 | No: after 5.0.0rc2; 4.54 not out | Switching a class (Adam to AdamW) gets the new class's own defaults. On v5, overlays that switch `class_path` and relied on values carrying over need `prior_init_args: keep` |
+| [J01](#j01) (Protocol case) | A callable Protocol whose `__call__` returns a class rejects a class whose instances implement it | 🔴 S1 | our #1043 (main); merged 2026-11-27 | No: after 5.0.0rc2; no 4.x backport | Loss classes for such Protocols parse again on v5. Left: the `Callable[..., Class]` case, so J01 is still listed as open |
 | [J08](#j08) | Nested `class_path` parse time grows exponentially with depth | 🟠 S2 | our #1036 (main); merged 2026-11-23 | No: after 5.0.0rc2; no 4.x backport | Real configs parse in 3.8 s, not 35 s; a parked ~180-line cache can go |
 | [J28](#j28) | Constructor errors reported as a union mismatch | 🟡 S3 | #1015 (v5) | In 5.0.0rc2 | Deleting two copies of a message-matching unwrapper and their tests |
 | [J29](#j29) | Quadratic list parsing | 🟡 S3 | #975 (v5) | In 5.0.0rc2 | Large lists in typed fields; a backport is low value for us now (the workaround is in place) |
-| [J03](#j03) | The #968 union-default leak, which our 4.51.0 pins keep | 🔴 S1 | #968 | 4.52.0 | Fixed upstream; what is left is ours: move off 4.51 once [J01](#j01) lands ([J18](#j18), [J07](#j07) also hold pins) |
+| [J03](#j03) | The #968 union-default leak, which our 4.51.0 pins keep | 🔴 S1 | #968 | 4.52.0 | Fixed upstream; what is left is ours: move off 4.51 once [J01](#j01)'s fix is released (main only, so v5) ([J18](#j18), [J07](#j07) also hold pins) |
 
-Partly fixed, so still listed as open: [J30](#j30) (#969 turns instantiation in `Any`
+Partly fixed, so still listed as open: [J01](#j01) (the `Callable[..., Class]` case), [J30](#j30) (#969 turns instantiation in `Any`
 off by default in v5, but specs are still converted and filled) and [J12](#j12) (v5
 messages are better, but still bury the cause).
 

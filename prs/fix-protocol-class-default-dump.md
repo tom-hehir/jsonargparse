@@ -1,85 +1,71 @@
-# Fix class default of a callable or protocol type dumped as a bare import path when nested
+# Fix class default of a callable type dumped without its init_args in a union or dataclass default
 
-Branch: `fix-protocol-class-default-dump` (draft, not opened)
+Branch: `fix-protocol-class-default-dump` (one commit, on main 2656bf3). Draft, not opened; the changelog uses #1045, the next free number on 2026-11-27.
+
+---
 
 ## What does this PR do?
 
-A class used as default of a parameter typed as a callable returning a subclass
-(`Callable[..., Decoder]`) or a callable Protocol is dumped with its `init_args`
-when the parameter stands alone, but as a bare import path when it is inside a
-union or inside a dataclass default. That config isn't a fixpoint (dump, parse,
-dump gives something different) and omits the hyperparameters:
+For a callable type that returns a class, such as `Callable[[], Decoder]` or a
+protocol whose `__call__` returns `Decoder`, a class can be given as default:
+the class is the factory, and calling it gives the instance. As the type of an
+argument, this default is dumped as `class_path` plus the class's `init_args`.
+In a union, it is dumped as only the import path:
 
 ```python
 class Decoder:
-    def __init__(self, *, spec: int = 1, d: int = 8, width: int = 4): ...
+    def __init__(self, width: int = 4): ...
 
 
-class Factory(Protocol):
-    def __call__(self, *, spec: int, d: int) -> Decoder: ...
-
-
-@dataclass
-class Config:
-    head: Factory | Choice = Decoder   # Choice is another dataclass
-
-
-parser.add_class_arguments(Config, "m")
-parser.dump(parser.parse_args([]))
-# m:
-#   head: __main__.Decoder
-# after parsing and dumping again: class_path plus init_args (width: 4)
+parser.add_argument("--plain", type=Callable[[], Decoder], default=Decoder)
+parser.add_argument("--in_union", type=Union[Callable[[], Decoder], int], default=Decoder)
+print(parser.dump(parser.parse_args([])))
+# plain:
+#   class_path: __main__.Decoder
+#   init_args:
+#     width: 4
+# in_union: __main__.Decoder
 ```
 
-A plain `head: Factory = Decoder` dumps `class_path` and `init_args` the first
-time. Same for a field of a dataclass instance used as default
-(`sel: Choice = Choice()` with `Choice.discrete: Factory = Decoder`).
+The same happens for a field of a dataclass instance used as default, when
+subclasses are enabled for dataclasses.
+
+So the saved config doesn't record `width`. Loading it gives the class's
+current defaults: if the default of `width` changes in the code, the saved
+config silently gives a different value from the one used when it was saved.
+Also, dumping the loaded config again gives the full form, so the two dumps
+differ.
 
 ### Cause
 
-`normalize_default_value` turns a class default into a `class_path` spec only
-when the action's own type hint is a callable that returns a subclass. In a union
-the check doesn't match, and for a default dataclass instance the field values
-inside it are never normalized with their field types. The class then stays in
-the config as is, and the callable branch of `adapt_typehints` only parses a
-string or a spec, so it is serialized as a bare import path. The sub-defaults
-(`init_args`) are only added when a value is parsed as a spec.
+`normalize_default_value` converts a class default to a `class_path` spec only
+when the argument's own type is the callable type. In a union, or for a field
+of a dataclass default, the class is kept as is, and is dumped as an import
+path.
 
 ### Fix
 
-In the callable branch of `adapt_typehints`, a class is converted to a
-`class_path` spec when the type is a callable returning a subclass, the same as
-a string with the import path of a class already was a few lines below. This
-covers every position the type can be in, at the place where the plain case
-already ends up.
+`adapt_typehints` converts a class to a `class_path` spec when the type is a
+callable that returns a class, next to where it already does this for an import
+path given as a string. This applies wherever the type appears, so a union or a
+dataclass default is dumped like a plain argument.
 
 ### Testing
 
-- `test_callable_protocol_class_default_nested_dump`, parametrized for a
-  dataclass instance default and a union with a dataclass: the dump has
-  `class_path` and the `init_args` defaults and dump, parse, dump is a fixpoint.
-  Fails on main.
-- Suite passes (except the 2 environmental argcomplete failures) and the changed
-  lines are covered.
+- `test_callable_protocol_class_default_nested_dump`, for a dataclass instance
+  default and for a union: the dump has `class_path` and `init_args`, and
+  loading it and dumping again gives the same dump. Both cases fail on main.
+- The existing tests pass, and the changed lines are covered.
 
 ### Notes for review
 
-- Behaviour change: the parsed value in these positions is now a spec
-  (`class_path`/`init_args`) instead of the class itself, so instantiating gives
-  a `functools.partial` of the class with its defaults rather than the class. It
-  is the same as what a plain field of that type already gives. Calling it gives
-  the same object.
-- A class that can't be imported back (e.g. defined in a function) now fails
-  with a "Unexpected import path format" error in these positions, as it does for
-  a plain field. Before, the dump contained "Unable to serialize instance" text.
-- The branch in `normalize_default_value` is kept; I didn't want to touch it,
-  but it could probably go once values are converted here. Only classes are
-  converted if the type returns a subclass, as `Callable[..., Any]` with a class
-  default is left as it was.
-- Alternatives I didn't take: normalizing with the field types when a dataclass
-  default is converted (more invasive), or serializing a class as a bare path
-  deliberately (keeps the dump compact but not the hyperparameters).
-- `v4`: the source change applies there, the test hunk needs adapting (different imports); not run on `v4`.
+- In these positions, instantiating now gives a `functools.partial` of the
+  class with its `init_args`, instead of the class itself, as it already does
+  for a plain argument. Calling it gives the same instance.
+- A class that can't be imported back, e.g. one defined inside a function, is
+  now rejected in these positions with "Unexpected import path format", as it
+  already is for a plain argument. Before, it was accepted and dumped as
+  "Unable to serialize instance ...".
 
 ## Before submitting
 
@@ -89,5 +75,7 @@ already ends up.
 - [x] Did you write **unit tests** such that there is 100% coverage on related code? (required for bug fixes and new features)
 - [x] Did you verify that new and existing **tests pass locally**?
 - [x] If this is a **bug fix**, did you verify that the **tests fail without the code fix**?
-- [ ] Did you make sure that all changes preserve **backward compatibility**? (see the first note)
+- [ ] Did you make sure that all changes preserve **backward compatibility**? (see the notes for review)
 - [x] Did you update **the CHANGELOG** including a pull request link? (not for typos, docs, test updates, or minor internal changes/refactors)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

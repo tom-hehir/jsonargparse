@@ -1,6 +1,6 @@
 # Fix callable protocols returning a class rejecting classes whose instances implement them
 
-Branch: `fix-factory-protocol-instances` (one commit, on main cc53487). Opened as [#1043](https://github.com/mauvilsa/jsonargparse/pull/1043) on 2026-11-27.
+Branch: `fix-factory-protocol-instances` (one commit, on main cc53487). Opened as [#1043](https://github.com/mauvilsa/jsonargparse/pull/1043) and merged on 2026-11-27.
 
 ---
 
