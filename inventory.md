@@ -177,7 +177,7 @@ Sorted by severity, then ID. 🔧 marks the ones with a fix branch.
 | [J25](#j25) | A section file given to a parent group resets nullable sections | intended-but-awkward | 🟠 S2 | small–medium | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J25_section_file_resets_section.py`](repros/J25_section_file_resets_section.py) |
 | [J26](#j26) | Tagged union with an instance default rejects another member 🔧 | regression-or-pin | 🟠 S2 | small (branch) | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J26_tagged_union_instance_default.py`](repros/J26_tagged_union_instance_default.py) |
 | [J27](#j27) | One unevaluable annotation leaves every field of the class unvalidated 🔧 | bug | 🟠 S2 | small | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J27_quoted_forward_ref_in_union.py`](repros/J27_quoted_forward_ref_in_union.py) |
-| [J59](#j59) | With `unset_sentinel=True`, a `None` in `Path`/`timedelta`/Callable `\| None` fields is dumped as text; saved configs don't reload | bug | 🟠 S2 | trivial | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J59_unset_sentinel_none_dumped_as_text.py`](repros/J59_unset_sentinel_none_dumped_as_text.py) |
+| [J59](#j59) | With `unset_sentinel=True`, a `None` in `Path`/`timedelta`/Callable `\| None` fields is dumped as text; saved configs don't reload 🔧 | bug | 🟠 S2 | trivial | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J59_unset_sentinel_none_dumped_as_text.py`](repros/J59_unset_sentinel_none_dumped_as_text.py) |
 | [J22](#j22) | `dump()` drops explicit `null`s; reload gives the default | intended-but-awkward | 🟡 S3 | small | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J22_dump_drops_null.py`](repros/J22_dump_drops_null.py) |
 | [J30](#j30) | `class_path` specs in `Any` fields are converted to Namespaces and filled; input mutated | intended-but-awkward | 🟡 S3 | small | debatable | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J30_any_spec_namespace.py`](repros/J30_any_spec_namespace.py) |
 | [J31](#j31) | `stubs_resolver_allow_py_files=True` gives sklearn `Ridge` zero parameters | bug | 🟡 S3 | trivial | likely-bug | 4.51 ❌ 4.53 ❌ v5 ❌ | [`J31_stubs_py_files_sklearn_ridge.py`](repros/J31_stubs_py_files_sklearn_ridge.py) |
@@ -529,7 +529,7 @@ also a ~50-line convention docstring. It also blocks `unset_sentinel=True`
 ([J23](#j23)): with that setting `None` is validated like any other value, so a
 `None` reaching a path field from a config or a Python mapping becomes
 `'None'` too. That broke 3 tests in one project; the fix branch fixes them.
-The [J59](#j59) fix (try `None` first) also fixes every `None` case here,
+The [J59](#j59) branch (try `None` first) also fixes every `None` case here,
 including `--p=null`, so with it this branch would only matter for the
 coercion of non-path values.
 
@@ -544,6 +544,9 @@ deserializer `str`, and the `PathLike` arm is tried before `None`.
 
 #### <a id="j59"></a>J59 With `unset_sentinel=True`, a `None` is dumped as text when another union member serializes it
 🟠 **S2** · trivial · likely-bug · hit in 4 of 6 · [`J59_unset_sentinel_none_dumped_as_text.py`](repros/J59_unset_sentinel_none_dumped_as_text.py)
+
+> [!NOTE]
+> **🔧 Fix branch**: `fix-unset-sentinel-none-dump` (draft PR in `prs/`), on main cc53487. Also applies cleanly to v4.
 
 **In short:** with `set_parsing_settings(unset_sentinel=True)`, a `None` in a
 field typed `Path | None`, `os.PathLike | None` or `timedelta | None` is dumped
@@ -603,10 +606,10 @@ the value being dumped, but never puts `NoneType` first for `None`. Related:
 same pattern with a non-`None` value.
 
 **Fix:** in `sort_subtypes_for_union`, when the value is `None`, try `NoneType`
-first (one line). Tested on main 670f094: the repro, the `None` part of
+first (two lines, on the fix branch with a test). The repro, the `None` part of
 [J13](#j13) (`--p=null` for `os.PathLike | None`) and the project cases all
-pass, and so does jsonargparse's own suite (2982 passed). It replaces the
-narrower two-line fix in the Callable branch tried first.
+pass, and so does jsonargparse's own suite (2988 passed on main cc53487). It
+replaces the narrower fix in the Callable branch tried first.
 
 #### <a id="j14"></a>J14 A `str` value that names an existing file is replaced by the file's contents
 🟠 **S2** · small · likely-bug · incident in 1 of 6 · [`J14_str_value_read_as_config_file.py`](repros/J14_str_value_read_as_config_file.py)

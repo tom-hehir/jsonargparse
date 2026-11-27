@@ -7,7 +7,8 @@ rest. Draft texts are in [`prs/`](prs/) and [`issues/`](issues/); IDs link to
 
 - **Branches**: pushed to the fork on 2026-11-26, each cut from upstream `main`
   at 3b30c14, each in its own worktree under `.claude/worktrees/<branch>`.
-  Nothing is filed upstream yet.
+  The J59 branch was added on 2026-11-27, cut from `main` at cc53487, and is
+  not pushed yet. Nothing is filed upstream yet.
 - **Checks on every branch**: the new tests fail without the fix and pass with
   it; the full upstream suite passes on Python 3.12 and 3.14, apart from 2
   argcomplete tests that also fail on untouched `main` here; changed lines are
@@ -27,7 +28,7 @@ rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
 | | ID | Branch (diff on GitHub) | Decisions or flags | Port to v4 |
 |---|---|---|---|---|
 | 🔴 | [J01](inventory.md#j01) | [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/d13b66eed01b61708c81c883c473d213f0d27fa9) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/4d05a3e431a043528962dbdb8f858598e4f35164) | Commit 2 (`Callable`) relaxes a check added on purpose in 4.52 (#959) and checks `Callable` by return type only, as for functions. It can be dropped without affecting commit 1. Alone it doesn't unblock one of our projects on v5: its `nn.Module` losses also need `-> Any` on their Protocol (J02) | manual port |
-| 🔴 | [J59](inventory.md#j59) | no branch yet | One line in `sort_subtypes_for_union`: try `NoneType` first when the value is `None`. Tested on main 670f094 (2982 passed). Also fixes the `None` part of J13 | manual (1 line) |
+| 🔴 | [J59](inventory.md#j59) | [`fix-unset-sentinel-none-dump`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-unset-sentinel-none-dump) | Moves `NoneType` first in `sort_subtypes_for_union` when the value is `None`. Also fixes the `None` part of J13; the draft mentions J37 as related but leaves it alone | applies |
 | 🔴 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | [`fix-default-instance-non-field-attributes`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/59bdc3dc0492680eae30e45116dc19ef83bfd72d) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/de6966ad159b48415afed833b591d10029906ea6) | Commit 2 reads `__init__` parameters with `getattr`, which also fixes slotted dataclasses (J39) on the same lines. Can be split if wanted | manual |
 | 🔴 | [J24](inventory.md#j24) | [`fix-protocol-class-default-dump`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-class-default-dump) | Nested class defaults now dump as `class_path` + `init_args`, like a plain field already does; the alternative (bare path) is offered | source applies |
 | 🔴 | [J15](inventory.md#j15) | [`fix-subscripted-generic-init-args`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-subscripted-generic-init-args) | none | manual (3 lines) |
@@ -43,10 +44,8 @@ rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
 | 🟡 | [J47](inventory.md#j47) | [`fix-default-factory-error-context`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-factory-error-context) | Re-raises as `ValueError` (same wording as the existing wrapper nearby), so the exception type changes; `add_note` isn't used in the codebase | applies |
 | ⚪ | [J39](inventory.md#j39) | [`fix-slotted-dataclass-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-slotted-dataclass-default) | Superseded by J16's commit 2; keep only if J16 isn't filed | manual |
 
-J59 (planned 2nd) has no branch yet; the one-line fix in its inventory entry was
-tested in a scratch copy, with jsonargparse's own suite. J23 turned out to be intended (see its entry): no
-issue, just a docs note for the v5 thread. J12 (issue only, not planned) has
-no branch.
+J23 turned out to be intended (see its entry): no issue, just a docs note for
+the v5 thread. J12 (issue only, not planned) has no branch.
 
 ## Questions to raise inside the PRs or issues
 
