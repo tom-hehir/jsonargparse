@@ -64,27 +64,30 @@ with the default settings too.
 ### Notes for review
 
 A related problem that this PR doesn't change: a registered serializer is
-applied to any value in a union, not only to instances of its type. For example,
-a size that is either `"auto"` or an integer:
+applied to any value in a union, not only to instances of its type:
 
 ```python
-class Auto:
+class MyClass:
     pass
 
 
-def parse_auto(value):
-    if value != "auto":
+def my_class_serializer(value):
+    return "my_class"
+
+
+def my_class_deserializer(value):
+    if value != "my_class":
         raise ValueError(value)
-    return Auto()
+    return MyClass()
 
 
-register_type(Auto, serializer=lambda v: "auto", deserializer=parse_auto)
-parser.add_argument("--size", type=Union[Auto, int])
-parser.dump(parser.parse_args(["--size=3"]))
-# size: auto
+register_type(MyClass, serializer=my_class_serializer, deserializer=my_class_deserializer)
+parser.add_argument("--value", type=Union[MyClass, int])
+parser.dump(parser.parse_args(["--value=3"]))
+# value: my_class
 ```
 
-The `3` is dumped as `auto`, so the dump loads back as `Auto()`.
+The `3` is dumped as `my_class`, so the dump loads back as `MyClass()`.
 
 ## Before submitting
 
