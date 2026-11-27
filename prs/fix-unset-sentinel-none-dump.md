@@ -64,16 +64,27 @@ with the default settings too.
 ### Notes for review
 
 A related problem that this PR doesn't change: a registered serializer is
-applied to any value in a union, not only to instances of its type. For
-example, with a sentinel type registered with `serializer=lambda v: "inherit"`:
+applied to any value in a union, not only to instances of its type. For example,
+a size that is either `"auto"` or an integer:
 
 ```python
-parser.add_argument("--x", type=Union[InheritType, bool], default=INHERIT)
-parser.dump(parser.parse_args(["--x=false"]))
-# x: inherit
+class Auto:
+    pass
+
+
+def parse_auto(value):
+    if value != "auto":
+        raise ValueError(value)
+    return Auto()
+
+
+register_type(Auto, serializer=lambda v: "auto", deserializer=parse_auto)
+parser.add_argument("--size", type=Union[Auto, int])
+parser.dump(parser.parse_args(["--size=3"]))
+# size: auto
 ```
 
-`False` is dumped as `inherit`, and loads back as the sentinel.
+The `3` is dumped as `auto`, so the dump loads back as `Auto()`.
 
 ## Before submitting
 
