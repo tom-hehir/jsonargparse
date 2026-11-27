@@ -7,8 +7,8 @@ rest. Draft texts are in [`prs/`](prs/) and [`issues/`](issues/); IDs link to
 
 - **Branches**: pushed to the fork on 2026-11-26, each cut from upstream `main`
   at 3b30c14, each in its own worktree under `.claude/worktrees/<branch>`.
-  The J59 branch was added on 2026-11-27, cut from `main` at cc53487, and is
-  not pushed yet. Nothing is filed upstream yet.
+  The J59 branch was added and pushed on 2026-11-27, cut from `main` at
+  cc53487. Nothing is filed upstream yet.
 - **Checks on every branch**: the new tests fail without the fix and pass with
   it; the full upstream suite passes on Python 3.12 and 3.14, apart from 2
   argcomplete tests that also fail on untouched `main` here; changed lines are
