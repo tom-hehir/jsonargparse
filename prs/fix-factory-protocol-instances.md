@@ -90,8 +90,7 @@ Two related cases are still rejected, and this PR doesn't change them:
 
   I left `Callable` out because #959 restricted it on purpose, and there is no
   existing check of a class against a `Callable` signature, as
-  `implements_protocol` is for protocols. I can send a separate PR if you think
-  `MSE` should be accepted here too.
+  `implements_protocol` is for protocols.
 - **`torch.nn.Module` implementers.**
 
   ```python
