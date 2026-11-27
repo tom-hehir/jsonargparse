@@ -6,8 +6,9 @@ Branch: `fix-unset-sentinel-none-dump` (one commit, on main cc53487). Expected P
 
 ## What does this PR do?
 
-With `set_parsing_settings(unset_sentinel=True)`, a `None` value of some union
-types is dumped as text instead of `null`, so the dump can't be loaded back:
+With `set_parsing_settings(unset_sentinel=True)`, `None` in some unions with
+`None` (here written as `Optional[X]`, i.e. `Union[X, None]`) is dumped as text
+instead of `null`, so the dump can't be loaded back:
 
 ```python
 set_parsing_settings(unset_sentinel=True)
