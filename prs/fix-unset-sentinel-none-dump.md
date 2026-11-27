@@ -68,7 +68,6 @@ would accept it is not tried. The same change also makes `--path=null` give
   types in a union, e.g. a sentinel type registered with
   `serializer=lambda v: "inherit"` in `Sentinel | bool` turns `False` into
   `"inherit"`. This PR doesn't change that.
-- The same change applies cleanly to the `v4` branch.
 
 ## Before submitting
 
