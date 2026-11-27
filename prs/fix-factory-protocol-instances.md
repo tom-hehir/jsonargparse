@@ -7,7 +7,7 @@ Branch: `fix-factory-protocol-instances` (one commit, on main cc53487). Expected
 ## What does this PR do?
 
 Since v4.52.0, a class whose instances implement a callable protocol is rejected
-as `class_path` when the protocol's `__call__` returns a class:
+as `class_path` if the protocol's `__call__` returns a class:
 
 ```python
 class Loss(Protocol):
@@ -24,64 +24,84 @@ parser.parse_args(["--loss=__main__.MSE"])
 # error: Expected '__main__.MSE' to be a subclass of Tensor.
 ```
 
-`MSE` instances implement `Loss`, and this worked in v4.51.0. A function
-implementing `Loss` is still accepted.
+`MSE` instances implement `Loss`, so this should be accepted, as it was in
+v4.51.0. A function that implements `Loss` is still accepted.
 
-Also, a protocol whose `__call__` has no return annotation rejects every class
-and function, e.g. with "Expected ... to be a function that returns _empty".
+Separately, a protocol whose `__call__` has no return annotation rejects every
+class and function, e.g. with "Expected ... to be a function that returns
+_empty".
 
 ### Cause
 
-A callable protocol whose `__call__` returns a class is taken to be an instance
-factory of that class. #959 fixed these accepting any class whose instances are
-callable, without checking them against the protocol. Since then, a class given
-as `class_path` must be a subclass of the return type, here `Tensor`. That also
-rejects classes whose instances do implement the protocol, which I think was not
-intended, since a protocol type accepts its implementers everywhere else.
+1. A callable protocol whose `__call__` returns a class is treated as an
+   instance factory of that class. `Loss` returns `Tensor`, so it is treated as
+   a factory of tensors.
+2. For an instance factory, a `class_path` can mean two things:
+   - a subclass of the returned class, e.g. `SGD` for a protocol returning
+     `Optimizer`: the class is the factory, and calling it gives the instance;
+   - a class whose instances implement the protocol, e.g. `MSE` for `Loss`: the
+     instance is the value, as for any other protocol type.
+3. Before #959, any class with callable instances was accepted, without
+   checking it against the protocol. #959 fixed this by accepting only the
+   first kind, which also rejects the second. I think this was not intended,
+   since a protocol type accepts its implementers everywhere else.
 
-Separately, `get_protocol_call_return_type` returns `inspect.Signature.empty`
-for a `__call__` without return annotation. That is a class, so the protocol is
-taken as returning instances of `_empty`.
+For the second problem, `get_protocol_call_return_type` returns
+`inspect.Signature.empty` when `__call__` has no return annotation. That is a
+class, so the protocol is treated as a factory of `_empty`.
 
 ### Fix
 
 - In `adapt_typehints`, a class that is not a subclass of the return type is
-  accepted if its instances implement the protocol, checked with
-  `implements_protocol` as for any other protocol. Classes that don't implement
-  it are still rejected, as #959 intended, and a subclass of the return type is
-  still treated as a factory.
+  accepted if its instances implement the protocol. This uses
+  `implements_protocol`, the same check as for any other protocol type, so a
+  class that doesn't implement the protocol is still rejected, as #959
+  intended. A subclass of the return type is still treated as a factory.
 - For a protocol, the error message adds "or its instances to implement
-  <protocol>", since that is now also accepted.
-- `get_protocol_call_return_type` returns `None` for an unannotated return,
-  like `get_callable_return_type` does when there is no return type.
+  <protocol>".
+- `get_protocol_call_return_type` returns `None` when the return is not
+  annotated, as `get_callable_return_type` does when there is no return type.
 
-This doesn't widen what a config can import: the class is still checked against
-the import path denylist before this point, and it must implement the protocol,
-as for any other protocol type.
+This doesn't change what a config can import: the class is checked against the
+import path denylist before this point, as before.
 
 ### Testing
 
-- `test_callable_protocol_accepts_class_whose_instances_implement_it`, for a
-  protocol with a class return type and for one without a return annotation:
-  the class is accepted, instantiated with its `init_args`, and its instances
-  give the expected result.
+- `test_callable_protocol_accepts_class_whose_instances_implement_it`: a class
+  whose instances implement the protocol is accepted, and `instantiate` gives
+  an instance of it. Run for a protocol that returns a class and for one
+  without a return annotation.
 - `test_callable_protocol_without_return_type_accepts_function`.
 - These fail on main. The existing tests pass, and the changed lines are
   covered.
 
 ### Notes for review
 
-- With `Callable[[Tensor, Tensor], Tensor]` instead of the protocol, `MSE` is
-  still rejected, for the same reason: the return type is a class, so the
-  `Callable` is taken to be an instance factory. This PR leaves `Callable` as it
-  is, since #959 restricted it on purpose, and unlike for a protocol there is no
-  existing check of whether a class's instances match a `Callable`. For
-  comparison, `Callable[[Tensor], float]` accepts any class whose instances are
-  callable, without checking their signature.
-- `torch.nn.Module` subclasses are still rejected for `Loss`, since
-  `nn.Module.__call__` has no return annotation (it forwards to `forward`), and
-  the signatures of a protocol's methods have to match. This PR doesn't change
-  that rule.
+Two related cases are still rejected, and this PR doesn't change them:
+
+- **`Callable` with a class return type.** Typed as a `Callable` instead of a
+  protocol, `MSE` is rejected for the same reason, since `Tensor` is a class:
+
+  | type of `--loss` | `--loss=__main__.MSE` |
+  |---|---|
+  | `Loss` | rejected on main, accepted with this PR |
+  | `Callable[[Tensor, Tensor], Tensor]` | rejected, also with this PR |
+  | `Callable[[Tensor], float]` | accepted, as is any class whose instances are callable |
+
+  I left `Callable` out because #959 restricted it on purpose, and there is no
+  existing check of a class against a `Callable` signature, as
+  `implements_protocol` is for protocols. I can send a separate PR if you think
+  `MSE` should be accepted here too.
+- **`torch.nn.Module` implementers.**
+
+  ```python
+  class MSEModule(torch.nn.Module):
+      def forward(self, pred: Tensor, target: Tensor) -> Tensor: ...
+  ```
+
+  `MSEModule` is still rejected for `Loss`. The protocol check compares
+  `__call__`, and `nn.Module.__call__` takes `*args, **kwargs` with no return
+  annotation, which doesn't match `-> Tensor`.
 
 ## Before submitting
 

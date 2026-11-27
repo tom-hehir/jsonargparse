@@ -45,13 +45,12 @@ So `NoneType` is never reached.
 
 `sort_subtypes_for_union` moves `NoneType` to the front when the value is
 `None`, in the same way as it already moves sequence types to the front when
-appending.
+appending to a list.
 
-For any other value the order is unchanged, and so is the order shown in the
-help. For `None`, the only change is that a subtype before `NoneType` that
-would accept it is not tried. The same change also makes `--path=null` give
-`None` for `Optional[os.PathLike]` with the default settings, where it gave
-`'None'`.
+This only changes which subtype handles a `None`. Any other value is tried in
+the same order as before, and the help still lists `NoneType` last. It also
+fixes `--path=null` giving the string `'None'` for `Optional[os.PathLike]`,
+with the default settings too.
 
 ### Testing
 
@@ -64,10 +63,17 @@ would accept it is not tried. The same change also makes `--path=null` give
 
 ### Notes for review
 
-- A related case: a registered serializer is also applied to values of other
-  types in a union, e.g. a sentinel type registered with
-  `serializer=lambda v: "inherit"` in `Sentinel | bool` turns `False` into
-  `"inherit"`. This PR doesn't change that.
+A related problem that this PR doesn't change: a registered serializer is
+applied to any value in a union, not only to instances of its type. For
+example, with a sentinel type registered with `serializer=lambda v: "inherit"`:
+
+```python
+parser.add_argument("--x", type=Union[InheritType, bool], default=INHERIT)
+parser.dump(parser.parse_args(["--x=false"]))
+# x: inherit
+```
+
+`False` is dumped as `inherit`, and loads back as the sentinel.
 
 ## Before submitting
 
