@@ -33,9 +33,11 @@ _empty".
 
 ### Cause
 
-1. A callable protocol whose `__call__` returns a class is treated as an
-   instance factory of that class. `Loss` returns `Tensor`, so it is treated as
-   a factory of tensors.
+1. A callable protocol is treated as an instance factory when its `__call__`
+   returns a type that could itself be given as `class_path`, i.e. a class
+   other than a builtin like `float` or `str`, a registered type, a `Path` or an
+   `Enum`. `Loss` returns `Tensor`, so it is treated as a factory of tensors.
+   A protocol returning `float` is not, so this problem doesn't arise there.
 2. For an instance factory, a `class_path` can mean two things:
    - a subclass of the returned class, e.g. `SGD` for a protocol returning
      `Optimizer`: the class is the factory, and calling it gives the instance;
@@ -80,13 +82,16 @@ import path denylist before this point, as before.
 Two related cases are still rejected, and this PR doesn't change them:
 
 - **`Callable` with a class return type.** Typed as a `Callable` instead of a
-  protocol, `MSE` is rejected for the same reason, since `Tensor` is a class:
+  protocol, `MSE` is rejected for the same reason: `Tensor` is a class that
+  could be given as `class_path`, so the `Callable` is treated as an instance
+  factory. With a `float` return it isn't, and any class with callable
+  instances is accepted:
 
   | type of `--loss` | `--loss=__main__.MSE` |
   |---|---|
   | `Loss` | rejected on main, accepted with this PR |
   | `Callable[[Tensor, Tensor], Tensor]` | rejected, also with this PR |
-  | `Callable[[Tensor], float]` | accepted, as is any class whose instances are callable |
+  | `Callable[[Tensor], float]` | accepted, as is any class whose instances are callable (not a factory) |
 
   I left `Callable` out because #959 restricted it on purpose, and there is no
   existing check of a class against a `Callable` signature, as
