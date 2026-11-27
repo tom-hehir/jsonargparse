@@ -46,7 +46,9 @@ So `NoneType` is never reached.
 
 `sort_subtypes_for_union` moves `NoneType` to the front when the value is
 `None`, in the same way as it already moves sequence types to the front when
-appending to a list.
+appending to a list. When appending, the sequence types still go first, since
+the `None` is then an item to append, e.g. `--val+=null` gives `[1, None]` for
+`Optional[List[Optional[int]]]` with default `[1]`.
 
 This only changes which subtype handles a `None`. Any other value is tried in
 the same order as before, and the help still lists `NoneType` last. It also
@@ -60,6 +62,7 @@ with the default settings too.
   `Optional[Callable[[int], int]]`: with `unset_sentinel=True`, a `None`
   default is dumped as `null`, loads back as `None`, and `--val=null` gives
   `None`. All four cases fail on main.
+- `test_list_append_null_item`: `--val+=null` still appends `None` to the list.
 - The existing tests pass, and the changed lines are covered.
 
 ### Notes for review
