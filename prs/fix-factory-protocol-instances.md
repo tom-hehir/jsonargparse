@@ -7,41 +7,37 @@ Branch: `fix-factory-protocol-instances` (one commit, on main cc53487). Expected
 ## What does this PR do?
 
 Since v4.52.0, a class whose instances implement a callable protocol is rejected
-as its `class_path` when the protocol's `__call__` returns a class:
+as `class_path` when the protocol's `__call__` returns a class:
 
 ```python
-class OptimizerFactory(Protocol):
-    def __call__(self, params: List[float]) -> Optimizer: ...
+class Loss(Protocol):
+    def __call__(self, pred: Tensor, target: Tensor) -> Tensor: ...
 
 
-class SGDFactory:
-    def __init__(self, lr: float = 0.1):
-        self.lr = lr
-
-    def __call__(self, params: List[float]) -> Optimizer:
-        return SGD(params, lr=self.lr)
+class MSE:
+    def __call__(self, pred: Tensor, target: Tensor) -> Tensor:
+        return ((pred - target) ** 2).mean()
 
 
-parser.add_argument("--optimizer", type=OptimizerFactory)
-parser.parse_args(["--optimizer=SGDFactory", "--optimizer.lr=0.01"])
-# error: Expected 'SGDFactory' to be a subclass of Optimizer.
+parser.add_argument("--loss", type=Loss)
+parser.parse_args(["--loss=__main__.MSE"])
+# error: Expected '__main__.MSE' to be a subclass of Tensor.
 ```
 
-`SGDFactory` instances implement `OptimizerFactory`, so it is a valid value
-like for any other protocol type: an implementer given as `class_path` is
-instantiated with its `init_args`, and the instance is the value.
+`MSE` instances implement `Loss`, and this worked in v4.51.0. A function
+implementing `Loss` is still accepted.
 
 Also, a protocol whose `__call__` has no return annotation rejects every class
 and function, e.g. with "Expected ... to be a function that returns _empty".
 
 ### Cause
 
-#959 fixed instance factory protocols accepting any class whose instances are
-callable, without checking them against the protocol. Since then, a class must
-be a subclass of the return type, i.e. a factory whose class is called to give
-the instance. That restriction also rejects classes whose instances do
-implement the protocol, which I think was not intended, since a protocol type
-accepts its implementers everywhere else.
+A callable protocol whose `__call__` returns a class is taken to be an instance
+factory of that class. #959 fixed these accepting any class whose instances are
+callable, without checking them against the protocol. Since then, a class given
+as `class_path` must be a subclass of the return type, here `Tensor`. That also
+rejects classes whose instances do implement the protocol, which I think was not
+intended, since a protocol type accepts its implementers everywhere else.
 
 Separately, `get_protocol_call_return_type` returns `inspect.Signature.empty`
 for a `__call__` without return annotation. That is a class, so the protocol is
@@ -59,22 +55,27 @@ taken as returning instances of `_empty`.
 - `get_protocol_call_return_type` returns `None` for an unannotated return,
   like `get_callable_return_type` does when there is no return type.
 
+This doesn't widen what a config can import: the class is still checked against
+the import path denylist before this point, and it must implement the protocol,
+as for any other protocol type.
+
 ### Testing
 
 - `test_callable_protocol_accepts_class_whose_instances_implement_it`, for a
   protocol with a class return type and for one without a return annotation:
   the class is accepted, instantiated with its `init_args`, and its instances
-  return the expected object.
+  give the expected result.
 - `test_callable_protocol_without_return_type_accepts_function`.
 - These fail on main. The existing tests pass, and the changed lines are
   covered.
 
 ### Notes for review
 
-- `Callable[..., Optimizer]` has the same problem for a class whose instances
-  are callable and return an `Optimizer`. This PR doesn't change it, since
-  #959 restricted it on purpose and a `Callable` can only be checked by its
-  return type. I can send that separately if you think it should be accepted.
+- `Callable[[Tensor, Tensor], Tensor]` still rejects `MSE`, while e.g.
+  `Callable[[Tensor], float]` accepts any class whose instances are callable.
+  This PR doesn't change `Callable`, since #959 restricted it on purpose and a
+  `Callable` can only be checked by its return type. I can send a change for it
+  separately if you think it should accept such classes.
 - A class whose `__call__` has no return annotation, such as a
   `torch.nn.Module`, still doesn't implement a protocol with an annotated
   return, since protocol signatures have to match. That is unchanged.
