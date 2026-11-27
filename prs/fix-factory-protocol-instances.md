@@ -100,7 +100,10 @@ Two related cases are still rejected, and this PR doesn't change them:
 
   `MSEModule` is still rejected for `Loss`. The protocol check compares
   `__call__`, and `nn.Module.__call__` takes `*args, **kwargs` with no return
-  annotation, which doesn't match `-> Tensor`.
+  annotation, which doesn't match `-> Tensor`. Accepting it would mean treating
+  a missing annotation as matching any type, as static type checkers do. That
+  is a broader change to how protocols are matched, so I've left it out of
+  scope and mention it only for completeness.
 
 ## Before submitting
 
