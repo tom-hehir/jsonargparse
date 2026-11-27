@@ -27,25 +27,21 @@ parser.parse_args(["--optimizer=SGDFactory", "--optimizer.lr=0.01"])
 # error: Expected 'SGDFactory' to be a subclass of Optimizer.
 ```
 
-`SGDFactory` instances implement `OptimizerFactory`, so this worked in v4.51.0.
+`SGDFactory` instances implement `OptimizerFactory`, so it is a valid value
+like for any other protocol type: an implementer given as `class_path` is
+instantiated with its `init_args`, and the instance is the value.
 
 Also, a protocol whose `__call__` has no return annotation rejects every class
 and function, e.g. with "Expected ... to be a function that returns _empty".
 
-In one of our codebases this broke every config: such a protocol is the type
-of a model field, and its default is a dataclass instance that implements it.
-
 ### Cause
 
-When a protocol's `__call__` returns a class, the protocol can be satisfied in
-two ways by a class given as `class_path`:
-
-- the class is a subclass of the return type, so the class itself is the
-  callable (a factory: calling it gives the instance);
-- the class's instances implement the protocol.
-
-Since #959, a class that is not a subclass of the return type is rejected
-before the second way is checked.
+#959 fixed instance factory protocols accepting any class whose instances are
+callable, without checking them against the protocol. Since then, a class must
+be a subclass of the return type, i.e. a factory whose class is called to give
+the instance. That restriction also rejects classes whose instances do
+implement the protocol, which I think was not intended, since a protocol type
+accepts its implementers everywhere else.
 
 Separately, `get_protocol_call_return_type` returns `inspect.Signature.empty`
 for a `__call__` without return annotation. That is a class, so the protocol is
@@ -55,8 +51,9 @@ taken as returning instances of `_empty`.
 
 - In `adapt_typehints`, a class that is not a subclass of the return type is
   accepted if its instances implement the protocol, checked with
-  `implements_protocol` as for any other protocol. A subclass of the return
-  type is still treated as a factory, as before.
+  `implements_protocol` as for any other protocol. Classes that don't implement
+  it are still rejected, as #959 intended, and a subclass of the return type is
+  still treated as a factory.
 - For a protocol, the error message adds "or its instances to implement
   <protocol>", since that is now also accepted.
 - `get_protocol_call_return_type` returns `None` for an unannotated return,
