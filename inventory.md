@@ -1,8 +1,8 @@
 # jsonargparse issue inventory
 
 Every jsonargparse problem that six of our research projects hit, or would hit,
-with what it cost us, a repro script, and a suggested fix. Which ones we plan to
-send upstream, and the fix branches, are in the [README](README.md); this file
+with what it cost us, a repro script, and a suggested fix. The
+[README](README.md) has a summary by priority and the fix branches; this file
 has the detail.
 
 - **Versions checked**: 4.51.0, 4.53.0 (latest v4), and 5.0.0rc2 plus main at
@@ -85,20 +85,21 @@ discussion upstream, not a bug report.
 
 ## v5 feedback
 
-For the release-candidate thread (mauvilsa/jsonargparse#999). Every v5-only
-test failure in our five suites traced to [J01](#j01), [J07](#j07), [J23](#j23),
-[J30](#j30)'s sklearn case, or [J45](#j45)'s renames; nothing else broke.
+Points about v5, relevant to the release-candidate thread
+(mauvilsa/jsonargparse#999). Every v5-only test failure in our five suites
+traced to [J01](#j01), [J07](#j07), [J23](#j23), [J30](#j30)'s sklearn case, or
+[J45](#j45)'s renames; nothing else broke.
 With `unset_sentinel=True` on, [J59](#j59) also breaks saved configs.
 
 1. **[J23](#j23): a required `X | None` parameter can't take `null` with the
    default settings.** Intended (#678, #969); `unset_sentinel=True` is the way
-   to allow it, and it works for us once [J59](#j59) is fixed. Ask: say so in the migration guide's "become required" entry and in
+   to allow it, and it works for us once [J59](#j59) is fixed. Suggestion: say so in the migration guide's "become required" entry and in
    the v4 deprecation message. Docs only, not an issue.
 2. **[J07](#j07): LightningCLI 2.6.x doesn't run on v5.** It calls APIs v5
    removed. Lightning caps `jsonargparse<5` only in its extras, so a fresh
    install of a project without its own `<5` picks v5 and breaks, while
    `--help` and `--print_config` still work and give false confidence. The
-   draft Lightning-AI/pytorch-lightning#22014 covers it. Ask: a note in the
+   draft Lightning-AI/pytorch-lightning#22014 covers it. Suggestion: a note in the
    guide on LightningCLI's status, and confirmation that
    `instantiate(..., instantiators=...)` is stable API.
 3. **[J01](#j01) also affects `Callable[..., Class]`.** Since 4.52, not new in
@@ -122,7 +123,7 @@ With `unset_sentinel=True` on, [J59](#j59) also breaks saved configs.
 5. **No public warning class** ([J48](#j48)). Projects filter Lightning-triggered
    warnings in pytest with `jsonargparse._deprecated.JsonargparseDeprecationWarning`;
    on v5 pytest reports "Failed to import filter module" and the filter does
-   nothing. Ask: export `JsonargparseWarning` and its deprecation subclass.
+   nothing. Suggestion: export `JsonargparseWarning` and its deprecation subclass.
 6. **`JSONARGPARSE_DEBUG=1` raises** `ValueError: Invalid boolean value`, so a
    common way of turning on debug output aborts the program. By design since
    4.47 (only `true`/`false`), so not a v5 regression; accepting `1`/`0`, or
@@ -454,7 +455,7 @@ as compatible.
 🟠 **S2** · small · likely-bug · hit in 4 of 6 · [`J09_undumpable_container_defaults.py`](repros/J09_undumpable_container_defaults.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-dump-container-defaults` (draft PR in `prs/`; local only for now).
+> **🔧 Fix branch**: `fix-dump-container-defaults` (draft PR in `prs/`).
 
 **In short:** a single dataclass default is saved as a mapping, but a default
 that is a `list[Rule]`, `tuple[Rule, ...]` or `dict[str, Rule]` (also of
@@ -616,7 +617,7 @@ replaces the narrower fix in the Callable branch tried first.
 🟠 **S2** · small · likely-bug · incident in 1 of 6 · [`J14_str_value_read_as_config_file.py`](repros/J14_str_value_read_as_config_file.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-str-value-read-as-config` (a prototype; to be raised as an issue first, draft in `issues/`).
+> **🔧 Fix branch**: `fix-str-value-read-as-config` (a prototype, with an issue draft in `issues/`).
 
 **In short:** with `sub_configs=True` (LightningCLI sets it), a string value
 that names an existing file is loaded as a config. A text file silently becomes
@@ -740,7 +741,7 @@ fixes [J39](#j39).
 🟠 **S2** · trivial (message) / small · likely-bug (message) / debatable (variance) · incident in 1 of 6 · [`J17_protocol_private_members.py`](repros/J17_protocol_private_members.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-protocol-private-members-message`, for the message only (draft PR in `prs/`; local only for now).
+> **🔧 Fix branch**: `fix-protocol-private-members-message`, for the message only (draft PR in `prs/`).
 
 **In short:** a Protocol whose only member is `_encode` matches no class ("does
 not implement protocol"). In a Protocol with both public and private members,
@@ -820,7 +821,7 @@ when the default comes from an enclosing default instance or a union.
 🟠 **S2** · small · likely-bug · hit in 2 of 6 · [`J27_quoted_forward_ref_in_union.py`](repros/J27_quoted_forward_ref_in_union.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-unevaluable-annotation-fallback` (draft PR in `prs/`; local only for now).
+> **🔧 Fix branch**: `fix-unevaluable-annotation-fallback` (draft PR in `prs/`).
 
 **In short:** under `from __future__ import annotations`, a field written
 `weights: "Weights" | None = None` (a quoted name inside `|`) can't be
@@ -962,7 +963,7 @@ This is the second commit of the [J16](#j16) branch; the standalone branch
 🟡 **S3** · trivial · likely-bug · hit in 1 of 6 · [`J43_parse_object_mutates_input.py`](repros/J43_parse_object_mutates_input.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-parse-object-mutates-input` (draft PR in `prs/`; local only for now).
+> **🔧 Fix branch**: `fix-parse-object-mutates-input` (draft PR in `prs/`).
 
 **In short:** each `class_path` dict inside a `list[Base]` or
 `dict[str, Base]` in the input is replaced in place by a Namespace. Single specs
@@ -1036,7 +1037,7 @@ Or generate dotted flags, or whole configs.
 `_namespace.py` treats a dict as a leaf. `DOCUMENTATION.rst` only says "a second
 JSON dict replaces the previous value completely".
 
-**Ask:** document the per-key merge. An opt-in `dict_merge` setting is about two
+**Suggestion:** document the per-key merge. An opt-in `dict_merge` setting is about two
 lines (prototyped: `val = {**prev_val, **val}`). Against it: it breaks 5 tests
 that pin the replace behaviour, and needs a delete marker, since `{}` would no
 longer clear an entry.
@@ -1069,7 +1070,7 @@ and pydantic instances keep 0.2.
 dataclass-like defaults. A plain instance stays opaque, so overrides start from
 the class defaults.
 
-**Ask:** recover `init_args` when every `__init__` parameter can be read back as
+**Suggestion:** recover `init_args` when every `__init__` parameter can be read back as
 an attribute; otherwise warn or raise at `add_argument` time ("use
 `lazy_instance`").
 
@@ -1091,7 +1092,7 @@ worker counts.
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌. On v5, `__include__: base.yaml` inside
 `over.yaml` merges correctly, but only if the overlay names its base.
 
-**Ask:** merge like whole-tree configs, or document the rule precisely.
+**Suggestion:** merge like whole-tree configs, or document the rule precisely.
 
 #### <a id="j11"></a>J11 Subclass mode breaks section files, hides nested options in `--help` and changes the dump shape
 🟠 **S2** (section file) / S3 (help, dump) · small · debatable · hit in 3 of 6 · [`J11_subclass_mode_side_effects.py`](repros/J11_subclass_mode_side_effects.py)
@@ -1112,7 +1113,7 @@ Dotted overrides work.
 **Workaround:** pass sections as extra whole-tree configs; read
 `value.get("init_args", value)` at every level.
 
-**Ask:** keep the file-path form for dataclass groups under the mode (or explain
+**Suggestion:** keep the file-path form for dataclass groups under the mode (or explain
 why it fails); list nested fields in `--help`.
 
 #### <a id="j30"></a>J30 `class_path` specs in `Any` fields are turned into filled-in Namespaces
@@ -1132,7 +1133,7 @@ too, so sklearn meta-estimators fail with `'Namespace' object has no attribute
 
 **Status:** 4.51 ❌ 4.53 ❌ v5 ❌.
 
-**Ask:** treat `Any` values as data unless instantiation is on; on v5, warn
+**Suggestion:** treat `Any` values as data unless instantiation is on; on v5, warn
 when a spec is passed to an untyped parameter.
 
 #### <a id="j22"></a>J22 `dump()` drops explicit `null`s
@@ -1168,7 +1169,7 @@ but `--a=null` is rejected.
 🟡 **S3** · trivial (message) · intended / likely (message) · hit in 1 of 6 · [`J47_default_factory_postinit.py`](repros/J47_default_factory_postinit.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-default-factory-error-context` (draft PR in `prs/`; local only for now).
+> **🔧 Fix branch**: `fix-default-factory-error-context` (draft PR in `prs/`).
 
 **In short:** for `runtime: Runtime = field(default_factory=Runtime)` where
 `Runtime.__post_init__` raises, `add_class_arguments` raises the bare
@@ -1229,7 +1230,7 @@ resolver bug.
 🟠 **S2** · small · likely-bug (idempotence) / debatable (scope) · hit in 6 of 6 · [`J10_global_settings_not_idempotent.py`](repros/J10_global_settings_not_idempotent.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-parsing-settings-idempotent`, for the repeated call only (draft PR in `prs/`; local only for now).
+> **🔧 Fix branch**: `fix-parsing-settings-idempotent`, for the repeated call only (draft PR in `prs/`).
 
 **In short:** three gaps in `set_parsing_settings`:
 
@@ -1259,7 +1260,7 @@ the disabled list and raises when it is already gone.
 
 **Fix:** make enabling an already-enabled selector a no-op (about 3 lines).
 
-**Ask:** export `get_parsing_setting`; add a `parsing_settings(**kw)` context
+**Suggestion:** export `get_parsing_setting`; add a `parsing_settings(**kw)` context
 manager that snapshots and restores the settings and selector tables.
 
 #### <a id="j19"></a>J19 No placeholder interpolation before validation
@@ -1290,7 +1291,7 @@ configs.
 **Impact on us:** a ~700-line deferred-recipe layer (later removed); a private
 re-parse step.
 
-**Ask:** e.g. a `Spec[Tokenizer]` type that checks the spec and returns it
+**Suggestion:** e.g. a `Spec[Tokenizer]` type that checks the spec and returns it
 unbuilt.
 
 #### <a id="j41"></a>J41 Dotted overrides can't reach list entries; links can't reach list or dict entries
@@ -1466,10 +1467,9 @@ to adjust when adopting it:
 For a field that has to be given explicitly but could do without `None`, naming
 the choice (e.g. `int | Literal["variable"]`) also works on any setting.
 
-**Ask:** a docs note only. The migration guide's "become required" entry and
+**Suggestion:** a docs note only. The migration guide's "become required" entry and
 the v4 deprecation message could say that such fields can't take `null` unless
-`unset_sentinel=True` is set. Better as a comment in the v5 thread (#999) than
-an issue. Note: [`issues/required-nullable-null.md`](issues/required-nullable-null.md).
+`unset_sentinel=True` is set. Note: [`issues/required-nullable-null.md`](issues/required-nullable-null.md).
 
 #### <a id="j45"></a>J45 v5 migration of our own code, and guide gaps
 🟡 **S3** · small · likely (docs) · hit in 5 of 6 · no repro

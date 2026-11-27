@@ -3,8 +3,8 @@
 Problems found while using jsonargparse for training and pipeline configs:
 nested dataclasses with subclass mode, `class_path` values several levels deep,
 callable Protocols, generics and LightningCLI. The items are ordered by their
-impact on these projects. The first table lists the ones planned to be sent
-upstream, as issues or pull requests; the other tables are for reference.
+impact on these projects. The first two tables list the items that have a fix
+branch, higher priority first; the third lists the other open items.
 
 Every issue ID links to a longer description in [`inventory.md`](inventory.md),
 with a standalone script in [`repros/`](repros/). Each fix branch is cut from
@@ -19,11 +19,11 @@ needs an unusual setup · **S3** real but contained, or has a clean workaround �
 **Lines** are added / removed against `main`: library code, tests, docs
 (`DOCUMENTATION.rst`) and changelog.
 
-## Planned, in order
+## Fix branches, higher priority
 
-| # | ID | What goes wrong | Sev | Planned as | Code | Tests | Docs | Changelog | Links |
+| # | ID | What goes wrong | Sev | Draft | Code | Tests | Docs | Changelog | Links |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | [J01](inventory.md#j01) | A class whose instances implement a callable Protocol is rejected as its `class_path`, since 4.52 | S1 | PR (#1043 expected); the `Callable[..., Class]` part held back | +13 −6 | +39 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [draft](prs/fix-factory-protocol-instances.md) |
+| 1 | [J01](inventory.md#j01) | A class whose instances implement a callable Protocol is rejected as its `class_path`, since 4.52 | S1 | PR (#1043 expected), without the `Callable[..., Class]` case | +13 −6 | +39 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [draft](prs/fix-factory-protocol-instances.md) |
 | 2 | [J59](inventory.md#j59) | With `unset_sentinel=True`, a `None` in a `Path`, `timedelta` or `Callable` field (`X \| None`) is dumped as text, so saved configs, LightningCLI's included, don't reload | S2 | PR (#1044 expected) | +5 −1 | +27 −1 | – | +5 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-unset-sentinel-none-dump) · [draft](prs/fix-unset-sentinel-none-dump.md) |
 | 3 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | A dataclass default with attributes that aren't `__init__` parameters (set in `__post_init__`, or `init=False`), or with `slots=True`, is rejected for union, `Optional` and subclass types | S2 | PR | +8 −1 | +45 | – | +8 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) · [draft](prs/fix-default-instance-non-field-attributes.md) |
 | 4 | [J24](inventory.md#j24) | A class default of a Protocol field, inside a default instance or a union, is dumped as a bare import path without its `init_args` | S2 | PR | +3 −1 | +27 −1 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-class-default-dump) · [draft](prs/fix-protocol-class-default-dump.md) |
@@ -33,9 +33,7 @@ needs an unusual setup · **S3** real but contained, or has a clean workaround �
 | 8 | [J04](inventory.md#j04) + [J44](inventory.md#j44) | A dataclass whose second base is in another module silently loses validation of every field; or an inherited field resolves to a different class of the same name | S1 | PR | +18 −7 | +40 −1 | – | +5 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-inherited-annotation-namespace) · [draft](prs/fix-inherited-annotation-namespace.md) |
 | 9 | [J26](inventory.md#j26) | A union of tagged dataclasses with an instance default rejects values for another member, since 4.50 | S2 | PR, with a question | +5 −1 | +36 −1 | – | +4 | [diff](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-tagged-union-instance-default) · [draft](prs/fix-tagged-union-instance-default.md) |
 
-## Fixed locally, lower priority
-
-Fix branches exist for these, but they are not planned to be sent for now.
+## Fix branches, lower priority
 
 | ID | What goes wrong | Sev | Code | Tests | Docs | Changelog | Links |
 |---|---|---|---|---|---|---|---|
@@ -49,8 +47,8 @@ Fix branches exist for these, but they are not planned to be sent for now.
 
 ## Other open points
 
-For context only: no fix work, and nothing planned. Several are intended or
-documented behaviour that was awkward in these projects, not bugs.
+These have no fix branch. Several are intended or documented behaviour that
+was awkward in these projects, rather than bugs.
 
 | ID | What | Kind | Sev |
 |---|---|---|---|
@@ -62,7 +60,7 @@ documented behaviour that was awkward in these projects, not bugs.
 | [J18](inventory.md#j18) | C builtins rejected for `Callable[[Tensor], Tensor]`; stubs setting read once | intended but awkward | S2 |
 | [J19](inventory.md#j19) | No placeholder interpolation before validation | missing feature | S2 |
 | [J20](inventory.md#j20) | No deferred instantiation (validate a `class_path` now, build later) | missing feature | S2 |
-| [J23](inventory.md#j23) | v5: a required `X \| None` can't be given `null` unless `unset_sentinel=True` (intended; a docs note for the v5 thread) | v5 migration | S2 |
+| [J23](inventory.md#j23) | v5: a required `X \| None` can't be given `null` unless `unset_sentinel=True` (intended) | v5 migration | S2 |
 | [J25](inventory.md#j25) | A section file given to a parent group resets nullable sections | intended but awkward | S2 |
 | [J22](inventory.md#j22) | `dump()` drops explicit `null`s; reload gives the default | intended but awkward | S3 |
 | [J30](inventory.md#j30) | `class_path` specs in `Any` fields are converted to Namespaces and filled; input mutated | intended but awkward | S3 |
@@ -107,7 +105,7 @@ documented behaviour that was awkward in these projects, not bugs.
 - [`inventory.md`](inventory.md): every issue in detail, including the design
   requests and the v5 feedback.
 - [`FIX-STATUS.md`](FIX-STATUS.md): working notes on the fix branches: open
-  decisions, questions for the maintainer, filing order.
+  decisions and questions for the maintainer.
 - [`issues/`](issues/) and [`prs/`](prs/): draft issue and PR texts.
 - [`repros/`](repros/): one standalone script per issue, with results per
   version.

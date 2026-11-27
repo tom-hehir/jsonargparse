@@ -1,6 +1,6 @@
 # J23: not an issue; a docs note for the v5 thread
 
-Not to be filed as a bug. A required `X | None` parameter rejecting `null`
+Not a bug. A required `X | None` parameter rejecting `null`
 under the default settings is intended (see [J23](../inventory.md#j23)):
 
 - in #678 the maintainer explained that, with argparse's convention, a required

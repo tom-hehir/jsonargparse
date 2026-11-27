@@ -1,27 +1,25 @@
 # Fix branches: working notes
 
-What to decide before filing each fix. The [README](README.md) has the order,
+Open decisions and questions for each fix branch. The [README](README.md) has the order,
 a one-line description, line counts and diff links for each; this file has the
 rest. Draft texts are in [`prs/`](prs/) and [`issues/`](issues/); IDs link to
 [`inventory.md`](inventory.md).
 
-- **Branches**: pushed to the fork on 2026-11-26, each cut from upstream `main`
-  at 3b30c14, each in its own worktree under `.claude/worktrees/<branch>`.
-  The J59 branch was added and pushed on 2026-11-27, cut from `main` at
-  cc53487. Nothing is filed upstream yet.
+- **Branches**: on the fork, each cut from upstream `main` at 3b30c14, except
+  J01 (rebased) and J59, which are on `main` at cc53487.
 - **Checks on every branch**: the new tests fail without the fix and pass with
   it; the full upstream suite passes on Python 3.12 and 3.14, apart from 2
   argcomplete tests that also fail on untouched `main` here; changed lines are
   covered; ruff is clean; mypy reports nothing new.
-- **Before filing**: the PR template asks "If you used a coding agent, did you
-  fully understand and validate all generated code". That box is left unticked
-  in every draft, for you to tick after your own review.
+- **Coding agent checkbox**: the PR template asks "If you used a coding agent,
+  did you fully understand and validate all generated code". That box is left
+  unticked in every draft until the code has been reviewed.
 - **PR or issue**: the bug template asks for a PR directly when the bug and its
   fix are understood, so PR is the default. Issue first is for behaviour the
   maintainer may consider intended, or that needs his design choice.
 
-**Priority** (README order): 🔴 first round, top five · 🟠 first round, the
-rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
+**Priority** (README order): 🔴 higher priority, top five · 🟠 higher priority,
+the rest · 🟡 lower priority · ⚪ superseded.
 
 ## Decisions and flags for each branch
 
@@ -44,26 +42,24 @@ rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
 | 🟡 | [J47](inventory.md#j47) | [`fix-default-factory-error-context`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-factory-error-context) | Re-raises as `ValueError` (same wording as the existing wrapper nearby), so the exception type changes; `add_note` isn't used in the codebase | applies |
 | ⚪ | [J39](inventory.md#j39) | [`fix-slotted-dataclass-default`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-slotted-dataclass-default) | Superseded by J16's commit 2; keep only if J16 isn't filed | manual |
 
-J23 turned out to be intended (see its entry): no issue, just a docs note for
-the v5 thread. J12 (issue only, not planned) has no branch.
+J23 turned out to be intended (see its entry). J12 has an issue draft and no
+branch.
 
-## Questions to raise inside the PRs or issues
+## Open questions
 
 - J01's held-back `Callable` part: check `Callable` by return type only, or a stricter signature check?
 - J10: a public getter for parsing settings, and a scoped setting API (follow-ups).
 - J13: should `os.PathLike` reject non-strings?
 - J27: warn when a class or field falls back to `Unvalidated`?
 
-## Filing order
+## Dependencies between branches
 
-Two or three at a time, in README order: J01 and J59 first, both promised in
-the comment in the v5 thread (#999), which also carries the J23 docs note; J59
-unblocks `unset_sentinel=True` (J23). Then J16, J24 and J15; then J13 (only its
-coercion part is left once J59 is in), the J14 issue, J04 + J44 and J26. If
-J27 is ever sent, file it after J04, since both
-change the same function. The 🟡 items stay local for now.
+- J59's fix also covers the `None` part of J13, so with J59 merged only J13's
+  coercion part remains.
+- J27 and J04 change the same function, so whichever is merged second needs
+  rebasing.
 
-## Not worked on
+## No fix branch
 
-J02 (jaxtyping), J18 + J31 (stubs setting), and J33, J34, J35, J36, J37. J31 is
-a tested one-line fix if wanted later.
+J02 (jaxtyping), J18 + J31 (stubs setting), and J33, J34, J35, J36, J37. J31 has
+a tested one-line fix.
