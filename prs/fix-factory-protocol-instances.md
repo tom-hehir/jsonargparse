@@ -71,16 +71,17 @@ as for any other protocol type.
 
 ### Notes for review
 
-- `Callable[[Tensor, Tensor], Tensor]` still rejects `MSE`, while e.g.
-  `Callable[[Tensor], float]` accepts any class whose instances are callable.
-  This PR doesn't change `Callable`, since #959 restricted it on purpose and a
-  `Callable` can only be checked by its return type. I can send a change for it
-  separately if you think it should accept such classes.
-- A class whose `__call__` has no return annotation, such as a
-  `torch.nn.Module`, still doesn't implement a protocol with an annotated
-  return, since protocol signatures have to match. That is unchanged.
-- The `v4` branch has different code here, so the change doesn't apply as is;
-  I can adapt it if you'd like it in a 4.x release.
+- With `Callable[[Tensor, Tensor], Tensor]` instead of the protocol, `MSE` is
+  still rejected, for the same reason: the return type is a class, so the
+  `Callable` is taken to be an instance factory. This PR leaves `Callable` as it
+  is, since #959 restricted it on purpose, and unlike for a protocol there is no
+  existing check of whether a class's instances match a `Callable`. For
+  comparison, `Callable[[Tensor], float]` accepts any class whose instances are
+  callable, without checking their signature.
+- `torch.nn.Module` subclasses are still rejected for `Loss`, since
+  `nn.Module.__call__` has no return annotation (it forwards to `forward`), and
+  the signatures of a protocol's methods have to match. This PR doesn't change
+  that rule.
 
 ## Before submitting
 
