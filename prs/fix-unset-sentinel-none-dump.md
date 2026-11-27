@@ -57,11 +57,10 @@ with the default settings too.
 
 ### Testing
 
-- `test_unset_sentinel_dump_none_in_union`, for `Optional[os.PathLike]`,
-  `Optional[Union[str, Path]]`, `Optional[timedelta]` and
-  `Optional[Callable[[int], int]]`: with `unset_sentinel=True`, a `None`
-  default is dumped as `null`, loads back as `None`, and `--val=null` gives
-  `None`. All four cases fail on main.
+- `test_unset_sentinel_dump_none_in_union`, for `Optional[Path]` and
+  `Optional[Callable[[int], int]]`, one for each cause above: with
+  `unset_sentinel=True`, a `None` default is dumped as `null`, loads back as
+  `None`, and `--val=null` gives `None`. Both cases fail on main.
 - `test_list_append_null_item`: `--val+=null` still appends `None` to the list.
 - The existing tests pass, and the changed lines are covered.
 
