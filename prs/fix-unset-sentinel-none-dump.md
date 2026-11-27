@@ -96,7 +96,7 @@ The `3` is dumped as `my_class`, so the dump loads back as `MyClass()`.
 ## Before submitting
 
 - [x] Did you read the [contributing guideline](https://github.com/mauvilsa/jsonargparse/blob/main/CONTRIBUTING.rst)?
-- [ ] If you used a **coding agent**, did you fully understand and validate all generated code and ensure it follows the contributing guidelines?
+- [x] If you used a **coding agent**, did you fully understand and validate all generated code and ensure it follows the contributing guidelines?
 - [n/a] Did you update **the documentation**? (readme and public docstrings)
 - [x] Did you write **unit tests** such that there is 100% coverage on related code? (required for bug fixes and new features)
 - [x] Did you verify that new and existing **tests pass locally**?
