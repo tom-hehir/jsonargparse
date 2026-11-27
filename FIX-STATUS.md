@@ -27,7 +27,7 @@ rest · 🟡 fixed locally, not planned for now · ⚪ superseded.
 
 | | ID | Branch (diff on GitHub) | Decisions or flags | Port to v4 |
 |---|---|---|---|---|
-| 🔴 | [J01](inventory.md#j01) | [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/d13b66eed01b61708c81c883c473d213f0d27fa9) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/4d05a3e431a043528962dbdb8f858598e4f35164) | Commit 2 (`Callable`) relaxes a check added on purpose in 4.52 (#959) and checks `Callable` by return type only, as for functions. It can be dropped without affecting commit 1. Alone it doesn't unblock one of our projects on v5: its `nn.Module` losses also need `-> Any` on their Protocol (J02) | manual port |
+| 🔴 | [J01](inventory.md#j01) | [`fix-factory-protocol-instances`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-factory-protocol-instances) | One commit, rebased on main cc53487 (2026-11-27). The `Callable[..., Class]` part (old commit 2) is held back on the local branch `fix-callable-class-instances`, since #959 restricted it on purpose; the PR offers it as a follow-up. Doesn't apply to v4 as is | manual |
 | 🔴 | [J59](inventory.md#j59) | [`fix-unset-sentinel-none-dump`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-unset-sentinel-none-dump) | Moves `NoneType` first in `sort_subtypes_for_union` when the value is `None`. Also fixes the `None` part of J13; the draft mentions J37 as related but leaves it alone | applies |
 | 🔴 | [J16](inventory.md#j16) + [J39](inventory.md#j39) | [`fix-default-instance-non-field-attributes`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-default-instance-non-field-attributes) · [commit 1](https://github.com/tom-hehir/jsonargparse/commit/59bdc3dc0492680eae30e45116dc19ef83bfd72d) · [commit 2](https://github.com/tom-hehir/jsonargparse/commit/de6966ad159b48415afed833b591d10029906ea6) | Commit 2 reads `__init__` parameters with `getattr`, which also fixes slotted dataclasses (J39) on the same lines. Can be split if wanted | manual |
 | 🔴 | [J24](inventory.md#j24) | [`fix-protocol-class-default-dump`](https://github.com/mauvilsa/jsonargparse/compare/main...tom-hehir:jsonargparse:fix-protocol-class-default-dump) | Nested class defaults now dump as `class_path` + `init_args`, like a plain field already does; the alternative (bare path) is offered | source applies |
@@ -49,7 +49,7 @@ the v5 thread. J12 (issue only, not planned) has no branch.
 
 ## Questions to raise inside the PRs or issues
 
-- J01 commit 2: check `Callable` by return type only, or a stricter signature check?
+- J01's held-back `Callable` part: check `Callable` by return type only, or a stricter signature check?
 - J10: a public getter for parsing settings, and a scoped setting API (follow-ups).
 - J13: should `os.PathLike` reject non-strings?
 - J27: warn when a class or field falls back to `Unvalidated`?

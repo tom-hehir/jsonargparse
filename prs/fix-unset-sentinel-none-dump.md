@@ -1,6 +1,8 @@
 # Fix None dumped as text for some union types with unset_sentinel=True
 
-Branch: `fix-unset-sentinel-none-dump` (draft, not opened)
+Branch: `fix-unset-sentinel-none-dump` (one commit, on main cc53487). Expected PR number: #1044.
+
+---
 
 ## What does this PR do?
 
@@ -18,53 +20,54 @@ print(parser.dump(parser.parse_args([])))
 # fn: Unable to serialize instance None
 ```
 
-Reloading this fails for `interval`, and `path` comes back as the string
-`'None'`. With LightningCLI this affects `Trainer(max_time=...,
-val_check_interval=...)`, `ModelCheckpoint(dirpath=..., train_time_interval=...)`
-and `ckpt_path`, so a saved `config.yaml` can't be used to re-run.
+Loading this back fails for `interval`, and `path` becomes the string `'None'`.
+With LightningCLI this affects `Trainer(max_time=..., val_check_interval=...)`,
+`ModelCheckpoint(dirpath=..., train_time_interval=...)` and `ckpt_path`, so a
+saved `config.yaml` can't be used to run again.
 
-With the default settings `None` means "not given", so it is never serialized
-and is dumped as `null`. That is why this only shows with `unset_sentinel=True`.
+With the default settings `None` means "not given" and is never serialized, so
+this only shows with `unset_sentinel=True`.
 
 ### Cause
 
-When serializing a union value, the subtypes are tried in order and the first
-that doesn't raise is used. Some of them accept `None`:
+For a union, the subtypes are tried in order and the first that doesn't raise
+is used. `NoneType` comes after the other subtypes, so that `Optional[X]` reads
+as written, but some of them accept `None` when serializing:
 
-- registered types whose serializer is `str` (`os.PathLike`, `pathlib.Path`,
-  `timedelta`) turn it into `"None"`;
+- registered types whose serializer is `str`, such as `os.PathLike`,
+  `pathlib.Path` and `timedelta`, give `"None"`;
 - `Callable` uses `serialize_as_import_path`, which since #966 returns
   `"Unable to serialize instance None"` instead of raising.
 
-So the `NoneType` subtype is never reached.
+So `NoneType` is never reached.
 
 ### Fix
 
 `sort_subtypes_for_union` moves `NoneType` to the front when the value is
-`None`. `None` is only ever valid for `NoneType` in a union, so trying it first
-can't change the result for any other value, and it also avoids trying the
-other subtypes for nothing.
+`None`, in the same way as it already moves sequence types to the front when
+appending.
 
-The same change also fixes `--path=null` on the command line for
-`Optional[os.PathLike]` giving `'None'` with the default settings, since that
-`None` goes through the same union.
+For any other value the order is unchanged, and so is the order shown in the
+help. For `None`, the only change is that a subtype before `NoneType` that
+would accept it is not tried. The same change also makes `--path=null` give
+`None` for `Optional[os.PathLike]` with the default settings, where it gave
+`'None'`.
 
 ### Testing
 
 - `test_unset_sentinel_dump_none_in_union`, for `Optional[os.PathLike]`,
   `Optional[Union[str, Path]]`, `Optional[timedelta]` and
-  `Optional[Callable[[int], int]]`: with `unset_sentinel=True`, the dump of a
-  `None` default is `null`, it reloads as `None`, and `--val=null` gives `None`.
-  All four cases fail on main.
-- The full test suite passes (2988 passed, 21 skipped).
+  `Optional[Callable[[int], int]]`: with `unset_sentinel=True`, a `None`
+  default is dumped as `null`, loads back as `None`, and `--val=null` gives
+  `None`. All four cases fail on main.
+- The existing tests pass, and the changed lines are covered.
 
 ### Notes for review
 
 - A related case: a registered serializer is also applied to values of other
   types in a union, e.g. a sentinel type registered with
   `serializer=lambda v: "inherit"` in `Sentinel | bool` turns `False` into
-  `"inherit"`. This PR doesn't change that; applying a registered serializer
-  only to instances of its type would cover it, but is a bigger change.
+  `"inherit"`. This PR doesn't change that.
 - The same change applies cleanly to the `v4` branch.
 
 ## Before submitting
@@ -77,3 +80,5 @@ The same change also fixes `--path=null` on the command line for
 - [x] If this is a **bug fix**, did you verify that the **tests fail without the code fix**?
 - [x] Did you make sure that all changes preserve **backward compatibility**?
 - [x] Did you update **the CHANGELOG** including a pull request link? (not for typos, docs, test updates, or minor internal changes/refactors)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

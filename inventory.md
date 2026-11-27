@@ -226,7 +226,7 @@ Fixed upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21),
 🔴 **S1** · small · likely-bug · hit in 4 of 6 · [`J01_protocol_call_returns_class.py`](repros/J01_protocol_call_returns_class.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-factory-protocol-instances` (draft PR in `prs/`), rebased on main 2026-11-26. Commit 1 fixes the Protocol case; a separable commit 2 fixes the `Callable[..., Class]` case.
+> **🔧 Fix branch**: `fix-factory-protocol-instances` (draft PR in `prs/`), one commit on main cc53487 (2026-11-27) for the Protocol case. The `Callable[..., Class]` part is held back on the local branch `fix-callable-class-instances`.
 
 **In short:** since 4.52, a Protocol whose `__call__` returns a class (and
 likewise a `Callable[..., Class]`) is treated as a factory for that class. So a
@@ -274,15 +274,16 @@ the field to `Factory | Choice`.
 `__call__` return type. It runs before the check for classes with callable
 instances.
 
-**Fix:** branch `fix-factory-protocol-instances`, in two commits.
+**Fix:** branch `fix-factory-protocol-instances`, one commit: a class that
+isn't a subclass of the return type is accepted if its instances implement the
+Protocol (`implements_protocol`), and an unannotated `__call__` return no longer
+counts as returning the class `_empty`.
 
-- Commit 1 (Protocols): a class that isn't a subclass of the return type is
-  accepted if its instances implement the Protocol (`implements_protocol`).
-- Commit 2 (`Callable[..., Class]`): a class is accepted if its `__call__`
-  returns a subclass of `Class`. Like functions, it is checked by return type
-  only, so a wrong arity is accepted and fails at call time. This relaxes a
-  check added on purpose in 4.52 (#959), so it is a question for the
-  maintainer and can be dropped.
+Held back on `fix-callable-class-instances` (local): for `Callable[..., Class]`,
+a class is accepted if its `__call__` returns a subclass of `Class`. Like
+functions, it is checked by return type only, so a wrong arity is accepted and
+fails at call time. This relaxes a check added on purpose in 4.52 (#959), so
+the PR only offers it.
 - Still rejected: a class whose `__call__` has no return annotation (such as
   `nn.Module`) against a Protocol with an annotated return, which 4.51
   accepted; see [J02](#j02).
