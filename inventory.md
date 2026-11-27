@@ -227,7 +227,7 @@ Fixed upstream, so not in this table: [J03](#j03), [J08](#j08), [J21](#j21),
 🔴 **S1** · small · likely-bug · hit in 4 of 6 · [`J01_protocol_call_returns_class.py`](repros/J01_protocol_call_returns_class.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-factory-protocol-instances` (draft PR in `prs/`), one commit on main cc53487 (2026-11-27) for the Protocol case. The `Callable[..., Class]` part is held back on the local branch `fix-callable-class-instances`.
+> **🔧 Fix branch**: `fix-factory-protocol-instances`, opened as [#1043](https://github.com/mauvilsa/jsonargparse/pull/1043) (text in `prs/`), one commit on main cc53487 (2026-11-27) for the Protocol case. The `Callable[..., Class]` part is held back on the local branch `fix-callable-class-instances`.
 
 **In short:** since 4.52, a Protocol whose `__call__` returns a class (and
 likewise a `Callable[..., Class]`) is treated as a factory for that class. So a
@@ -548,7 +548,7 @@ deserializer `str`, and the `PathLike` arm is tried before `None`.
 🟠 **S2** · trivial · likely-bug · hit in 4 of 6 · [`J59_unset_sentinel_none_dumped_as_text.py`](repros/J59_unset_sentinel_none_dumped_as_text.py)
 
 > [!NOTE]
-> **🔧 Fix branch**: `fix-unset-sentinel-none-dump` (draft PR in `prs/`), on main cc53487. Also applies cleanly to v4.
+> **🔧 Fix branch**: `fix-unset-sentinel-none-dump`, opened as [#1044](https://github.com/mauvilsa/jsonargparse/pull/1044) (text in `prs/`), on main cc53487. Also applies cleanly to v4.
 
 **In short:** with `set_parsing_settings(unset_sentinel=True)`, a `None` in a
 field typed `Path | None`, `os.PathLike | None` or `timedelta | None` is dumped

@@ -1,6 +1,6 @@
 # Fix None dumped as text for some union types with unset_sentinel=True
 
-Branch: `fix-unset-sentinel-none-dump` (one commit, on main cc53487). Expected PR number: #1044.
+Branch: `fix-unset-sentinel-none-dump` (one commit, on main cc53487). Opened as [#1044](https://github.com/mauvilsa/jsonargparse/pull/1044) on 2026-11-27.
 
 ---
 
